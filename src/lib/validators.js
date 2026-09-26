@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MONTH_KEY_PATTERN, parseDateInput } from "@/lib/date";
 
-export const MEMBER_STATUSES = ["ACTIVE", "INACTIVE", "ARCHIVED"] as const;
+export const MEMBER_STATUSES = ["ACTIVE", "INACTIVE", "ARCHIVED"];
 
 export const EXPENSE_CATEGORIES = [
   "BAZAR",
@@ -11,9 +11,9 @@ export const EXPENSE_CATEGORIES = [
   "MAINTENANCE",
   "FURNITURE",
   "OTHER",
-] as const;
+];
 
-export const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR", "PKR", "AED"] as const;
+export const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR", "PKR", "AED"];
 
 /** Categories that get split evenly across active members (everything except bazar). */
 export const NON_SHARED_EQUALLY = "BAZAR";
