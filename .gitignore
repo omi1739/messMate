@@ -22,7 +22,7 @@
 
 # misc
 .DS_Store
-*.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -30,12 +30,69 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ---------------------------------------------------------------------------
+# Secrets
+#
+# Nothing in this block should ever be committed. A credential that reaches git
+# stays in the history even after it is deleted from the working tree, so these
+# patterns are deliberately broad — a false positive costs one `git add -f`, a
+# false negative costs a rotated key.
+# ---------------------------------------------------------------------------
+
+# Environment files. Covers .env, .env.local, .env.production, .env.staging, .env.*.local
+.env*
+# ...except the committed template, which is the whole point of committing env config.
+!.env.example
+
+# Keys, certificates and keystores
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.ovpn
+*.crt
+*.cer
+*.der
+*.asc
+id_rsa
+id_rsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+
+# Cloud and package-manager credentials
+credentials.json
+service-account*.json
+*service-account*.json
+firebase-adminsdk*.json
+.aws/
+.gcloud/
+.netrc
+.pgpass
+.my.cnf
+.npmrc
+.yarnrc.yml
+# Terraform state can contain cleartext credentials
+*.tfstate
+*.tfstate.*
+
+# Common secret directories
+secrets/
+.secret/
+.private/
+
+# Anything that looks like a credential file, wherever it lives
+**/*secret*.json
+**/*credentials*.json
+**/*.secret.*
+

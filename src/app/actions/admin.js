@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { assertSameOrigin, requireSuperAdmin } from "@/lib/dal";
 import { fail, formString, succeed } from "@/lib/action-state";
+import { clearMessData } from "@/lib/cascade";
 
 /**
  * Super-admin mutations.
@@ -47,16 +48,7 @@ export async function deleteUserAction(_prevState, formData) {
   // Messes cascade from their owner via Prisma's onDelete, but MongoDB does not
   // enforce referential integrity, so the child records are cleared explicitly.
   if (target.mess) {
-    const messId = target.mess.id;
-    await Promise.all([
-      db.meal.deleteMany({ where: { messId } }),
-      db.payment.deleteMany({ where: { messId } }),
-      db.expense.deleteMany({ where: { messId } }),
-      db.customBill.deleteMany({ where: { messId } }),
-      db.bill.deleteMany({ where: { messId } }),
-      db.member.deleteMany({ where: { messId } }),
-    ]);
-    await db.mess.deleteMany({ where: { id: messId } });
+    await clearMessData(db, target.mess.id);
   }
   await db.user.deleteMany({ where: { id: userId } });
 
