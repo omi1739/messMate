@@ -175,11 +175,14 @@ export function computeSettlement({
 
       /** Everything the mess is owed for the month. */
       grandTotal,
-      /** Everything actually collected. */
-      totalCollected,
-      outstanding: round2(sumBy(rows.filter((r) => r.balance > 0), (r) => r.balance)),
-      change: sumBy(rows.filter((r) => r.balance < 0), (r) => Math.abs(r.balance)),
+      /** Everything actually collected (sum of recorded payments). */
+      totalCollected: rowsPaidTotal,
+      /** Alias kept explicit so the dashboard reads clearly. */
       paidTotal: rowsPaidTotal,
+      /** Owed by members whose balance is positive. */
+      outstanding: round2(sumBy(rows.filter((r) => r.balance > 0), (r) => r.balance)),
+      /** Owed back to members who overpaid. */
+      change: round2(sumBy(rows.filter((r) => r.balance < 0), (r) => Math.abs(r.balance))),
     },
 
     rows,

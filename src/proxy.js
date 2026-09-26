@@ -44,6 +44,11 @@ export default auth((request) => {
     return NextResponse.redirect(target);
   }
 
+  // A super admin has no mess, so they have nothing to do inside the owner app.
+  if (isAdmin && isLoggedIn && !isPublic(path) && !isAdminArea) {
+    return NextResponse.redirect(new URL("/admin", nextUrl));
+  }
+
   // Already signed in: the landing page and the auth forms are pointless.
   if (isLoggedIn && isPublic(path)) {
     return NextResponse.redirect(new URL(isAdmin ? "/admin" : "/dashboard", nextUrl));
