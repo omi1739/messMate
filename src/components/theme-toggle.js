@@ -5,6 +5,13 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "messmate-theme";
+/*
+ * Light is the default, not "follow the OS". Someone whose laptop is in dark
+ * mode gets the light theme until they ask for the other one, so the first
+ * thing they see is the theme this app was actually designed in. "System"
+ * stays as an explicit choice for anyone who wants it.
+ */
+const DEFAULT_THEME = "light";
 const OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
@@ -38,11 +45,11 @@ function subscribe(onChange) {
 }
 
 function getSnapshot() {
-  return window.localStorage.getItem(STORAGE_KEY) ?? "system";
+  return window.localStorage.getItem(STORAGE_KEY) ?? DEFAULT_THEME;
 }
 
 function getServerSnapshot() {
-  return "system";
+  return DEFAULT_THEME;
 }
 
 /** True only after hydration, so server and client markup match. */
@@ -85,6 +92,8 @@ export function ThemeToggle({ className }) {
 
 /**
  * Runs before first paint to set the theme class, preventing the white flash
- * that a dark-mode user would otherwise get on every load.
+ * that a dark-mode user would otherwise get on every load. The fallback has to
+ * match DEFAULT_THEME, otherwise the first paint disagrees with the button and
+ * the theme flickers on every navigation.
  */
-export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}")||"system";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light"}catch(e){}})();`;
+export const themeScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}")||"${DEFAULT_THEME}";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light"}catch(e){}})();`;

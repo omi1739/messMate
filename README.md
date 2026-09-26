@@ -191,6 +191,7 @@ proving the session owns it.
 | `npm run db:check`     | Report row counts per mess and fail on orphaned rows  |
 | `npm run db:clean:e2e` | Remove those accounts and all of their mess data        |
 | `npm run check:contrast` | WCAG audit of every theme token pairing, both themes  |
+| `npm run check:dark`  | Render every route in both themes and audit real contrast |
 | `npm run shoot:demo`   | Re-capture the marketing screenshots in `public/demo`   |
 | `npm run check:shots`  | Verify those PNGs are real renders, not blank frames     |
 | `npm run db:seed:visits` | Generate 30 days of sample traffic to review the panel |
@@ -224,6 +225,51 @@ npm run db:clean:e2e                           # then put the database back
 
 `check:shots` decodes the PNGs and fails if any frame is blank or rendered in
 the wrong colour scheme, so a broken capture cannot quietly ship.
+
+#### Light and dark
+
+Light is the default, not the OS preference. Someone whose laptop is in dark mode
+gets the light theme until they ask for the other one, so the first thing they
+see is the theme the app was designed in. The toggle still offers **System** as
+an explicit third stop, and a stored choice always wins over the default.
+
+The choice is applied by a small script in `<head>` before first paint, so there
+is no white flash for a dark-mode user on any navigation. `npm test` covers the
+default so the script, the button and the server snapshot cannot drift apart.
+
+`check:contrast` proves the *tokens* are well chosen. `check:dark` proves the
+pages actually use them, which is the part that goes wrong in practice. It signs
+in, visits all thirteen routes in both themes, and for every element with visible
+text composites the colour through any translucent ancestors down to the first
+opaque one before applying the WCAG formula. It also asserts things that no
+contrast number would reveal:
+
+- The stored preference really reached `<html>`, so a dark pass that silently
+  rendered light fails instead of measuring the same page twice.
+- `surface-muted` really is *recessed* and `surface-raised` really is *raised*,
+  in both themes. These are the names components reach for, and a dark theme
+  that inverts them makes every card look like a hole.
+- A card's colour is distinguishable from the page behind it.
+- Each dark capture is measurably darker than its light twin.
+- No element carries a border colour with no border width, which Tailwind
+  renders as nothing at all.
+
+It also flags any element carrying a border *colour* with no border *width*,
+which Tailwind renders as nothing at all.
+
+Because the app now defaults to light, the audit writes the stored preference
+itself before each load rather than relying on `prefers-color-scheme`, so it
+exercises the same path a real visitor takes.
+
+```
+npm run db:seed:e2e && npm run db:seed:demo   # fixtures must exist
+npm run check:dark                             # needs the dev server on :3000
+npm run db:clean:e2e
+```
+
+> Dev-server CSS is cached aggressively by Turbopack. If you change a token and
+> the page still shows the old colour, delete `.next` and restart the dev server
+> before believing what you are looking at.
 
 > On Windows, run these through `npm.cmd` / `npx.cmd` — the bare `npm` shim is
 > blocked by the default execution policy.

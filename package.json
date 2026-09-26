@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "node --import ./scripts/register.mjs scripts/run-tests.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
+    "check:dark": "node scripts/check-dark.mjs",
     "check:shots": "node scripts/check-shots.mjs",
     "shoot:demo": "node --import ./scripts/register.mjs scripts/shoot-demo.mjs",
     "test:isolation": "node scripts/check-isolation.mjs",
