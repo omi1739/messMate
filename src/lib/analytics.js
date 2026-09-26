@@ -297,13 +297,39 @@ export async function pruneIfDue(now = Date.now()) {
 }
 
 /**
+ * A zero-filled traffic window: the right answer before anyone has been
+ * counted, and the fallback when the counters cannot be read at all. Both
+ * `readTraffic` and the dashboard's error path go through here, so the real
+ * shape and the empty shape cannot drift apart.
+ */
+export function emptyTraffic(days = 30) {
+  const zero = { views: 0, uniques: 0 };
+  const series = [];
+  // Fill the gaps so the chart draws a real timeline rather than skipping days.
+  for (let offset = days - 1; offset >= 0; offset--) {
+    series.push({ day: daysAgoKey(offset), ...zero });
+  }
+  return {
+    days,
+    series,
+    totals: { ...zero },
+    today: series.at(-1) ?? { day: dayKey(), ...zero },
+    last7: { ...zero },
+    previous7: { ...zero },
+    pages: [],
+    referrers: [],
+    devices: [],
+  };
+}
+
+/**
  * Reads the counters back for the dashboard. Super-admin only is enforced by
  * the caller.
  */
 export async function readTraffic(days = 30) {
-  const from = daysAgoKey(days - 1);
+  const base = emptyTraffic(days);
   const rows = await db.visitDaily.findMany({
-    where: { day: { gte: from } },
+    where: { day: { gte: base.series[0].day } },
     select: { day: true, kind: true, count: true, uniques: true },
   });
 
@@ -325,13 +351,13 @@ export async function readTraffic(days = 30) {
     target.set(value, (target.get(value) ?? 0) + row.count);
   }
 
-  // Fill the gaps so the chart draws a real timeline rather than skipping days.
-  const series = [];
-  for (let offset = days - 1; offset >= 0; offset--) {
-    const day = daysAgoKey(offset);
-    const entry = byDay.get(day) ?? { views: 0, uniques: 0 };
-    series.push({ day, ...entry });
+  // Overlay the counted days onto the zero-filled window.
+  const index = new Map(base.series.map((entry) => [entry.day, entry]));
+  for (const [day, entry] of byDay) {
+    const target = index.get(day);
+    if (target) Object.assign(target, entry);
   }
+  const series = base.series;
 
   const top = (map, limit) =>
     [...map.entries()]
@@ -339,12 +365,6 @@ export async function readTraffic(days = 30) {
       .sort((a, b) => b.count - a.count)
       .slice(0, limit);
 
-  const totals = series.reduce(
-    (acc, entry) => ({ views: acc.views + entry.views, uniques: acc.uniques + entry.uniques }),
-    { views: 0, uniques: 0 },
-  );
-
-  const today = series.at(-1) ?? { day: dayKey(), views: 0, uniques: 0 };
   const sumWindow = (n) =>
     series.slice(-n).reduce(
       (acc, entry) => ({ views: acc.views + entry.views, uniques: acc.uniques + entry.uniques }),
@@ -352,10 +372,9 @@ export async function readTraffic(days = 30) {
     );
 
   return {
-    days,
-    series,
-    totals,
-    today,
+    ...base,
+    totals: sumWindow(series.length),
+    today: series.at(-1) ?? { day: dayKey(), views: 0, uniques: 0 },
     last7: sumWindow(7),
     previous7: sumWindow(14),
     pages: top(pages, 8),

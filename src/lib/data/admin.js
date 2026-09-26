@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/dal";
 import { sumBy } from "@/lib/money";
 import { monthKeyFromDate, relativeTime } from "@/lib/date";
-import { readTraffic, dayKey } from "@/lib/analytics";
+import { readTraffic, emptyTraffic, dayKey } from "@/lib/analytics";
 
 /**
  * Super-admin only views. Every function here calls `requireSuperAdmin()` first,
@@ -115,7 +115,16 @@ export async function getPlatformOverview() {
 /** Traffic for the panel. Counts come from src/proxy.js; see src/lib/analytics.js. */
 export async function getTrafficOverview(days = 30) {
   await requireSuperAdmin();
-  return readTraffic(days);
+  try {
+    return await readTraffic(days);
+  } catch (error) {
+    // The counters are an extra, not a requirement. A database where
+    // `db push` has not run yet, or one that is briefly unreachable, should
+    // cost the panel its numbers and nothing else: the rest of the dashboard
+    // is real data worth reading, so a 500 here would throw all of it away.
+    console.error("[admin] traffic unavailable, showing an empty panel:", error?.message ?? error);
+    return emptyTraffic(days);
+  }
 }
 
 
