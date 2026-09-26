@@ -1,78 +1,98 @@
-import * as React from "react";
+"use client";
+
+import { useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useModalBehaviour } from "@/components/ui/use-modal";
 
-export function Dialog({ open, onOpenChange, children }) {
-  React.useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") onOpenChange(false);
-    };
-    if (open) {
-      document.body.style.overflow = "hidden";
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onOpenChange]);
+/**
+ * Accessible modal — focus trap, Escape, scroll lock and focus restoration all
+ * come from the shared `useModalBehaviour` hook.
+ */
 
-  if (!open) return null;
+export function Dialog({ open, onClose, children, className, label }) {
+  const panelRef = useRef(null);
+  const handleClose = useCallback(() => onClose?.(), [onClose]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
-        onClick={() => onOpenChange(false)}
+  useModalBehaviour(open, handleClose, panelRef);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+      <button
+        type="button"
+        aria-label="Close dialog"
+        onClick={handleClose}
+        className="absolute inset-0 animate-fade-in cursor-default bg-slate-950/45 backdrop-blur-[2px]"
       />
-      {/* Content Container */}
-      <div className="relative z-10 w-full max-w-lg scale-100 transform overflow-y-auto max-h-[calc(100vh-2rem)] rounded-xl border border-slate-200 bg-white p-6 shadow-2xl transition-all duration-350 dark:border-slate-800 dark:bg-slate-950">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+        className={cn(
+          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden bg-surface shadow-overlay outline-none",
+          "animate-slide-up rounded-t-2xl sm:max-w-lg sm:animate-scale-in sm:rounded-[var(--radius-card)]",
+          className,
+        )}
+      >
         {children}
-        <button
-          onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-900 dark:hover:text-slate-100 transition-colors"
-        >
-          <X className="h-4.5 w-4.5" />
-          <span className="sr-only">Close</span>
-        </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
-export function DialogContent({ children, className }) {
-  return <div className={cn("grid gap-4", className)}>{children}</div>;
-}
-
-export function DialogHeader({ children, className }) {
+export function DialogHeader({ className, children }) {
   return (
-    <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)}>
+    <div className={cn("flex items-start justify-between gap-4 border-b border-border px-5 py-4", className)}>
       {children}
     </div>
   );
 }
 
-export function DialogTitle({ children, className }) {
-  return (
-    <h2 className={cn("text-lg font-semibold leading-none tracking-tight text-slate-900 dark:text-slate-50", className)}>
-      {children}
-    </h2>
-  );
+export function DialogTitle({ className, children }) {
+  return <h2 className={cn("text-base font-semibold tracking-tight", className)}>{children}</h2>;
 }
 
-export function DialogDescription({ children, className }) {
-  return (
-    <p className={cn("text-sm text-slate-500 dark:text-slate-400", className)}>
-      {children}
-    </p>
-  );
+export function DialogDescription({ className, children }) {
+  return <p className={cn("mt-1 text-[13px] text-muted-foreground", className)}>{children}</p>;
 }
 
-export function DialogFooter({ children, className }) {
+export function DialogBody({ className, children }) {
+  return <div className={cn("min-h-0 flex-1 overflow-y-auto px-5 py-4", className)}>{children}</div>;
+}
+
+export function DialogFooter({ className, children }) {
   return (
-    <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-4", className)}>
+    <div
+      className={cn(
+        "flex flex-col-reverse gap-2 border-t border-border bg-surface-muted/50 px-5 py-3.5 sm:flex-row sm:justify-end",
+        className,
+      )}
+    >
       {children}
     </div>
+  );
+}
+
+export function DialogClose({ onClick, children, ...props }) {
+  return (
+    <Button variant="outline" onClick={onClick} {...props}>
+      {children ?? "Cancel"}
+    </Button>
+  );
+}
+
+/** Small × in the top-right of a dialog header. */
+export function DialogCloseIcon({ onClick }) {
+  return (
+    <Button variant="ghost" size="icon-sm" onClick={onClick} aria-label="Close" className="-mr-1 -mt-0.5">
+      <X className="size-4" aria-hidden />
+    </Button>
   );
 }
