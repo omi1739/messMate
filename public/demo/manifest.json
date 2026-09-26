@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "10-signup",
+    "route": "/signup",
+    "width": 1440,
+    "height": 900
+  },
+  {
+    "slug": "11-login",
+    "route": "/login",
+    "width": 1440,
+    "height": 900
+  },
+  {
+    "slug": "13-not-found",
+    "route": "/no-such-page",
+    "width": 1440,
+    "height": 900
+  },
+  {
+    "slug": "01-dashboard",
+    "route": "/dashboard",
+    "width": 1440,
+    "height": 999
+  },
+  {
+    "slug": "02-members",
+    "route": "/members",
+    "width": 1440,
+    "height": 900
+  },
+  {
+    "slug": "03-meals",
+    "route": "/meals",
+    "width": 1440,
+    "height": 900
+  },
+  {
+    "slug": "04-expenses",
+    "route": "/expenses",
+    "width": 1440,
+    "height": 1533
+  },
+  {
+    "slug": "05-bills",
+    "route": "/bills",
+    "width": 1440,
+    "height": 1181
+  },
+  {
+    "slug": "06-reports",
+    "route": "/reports",
+    "width": 1440,
+    "height": 1442
+  },
+  {
+    "slug": "07-settings",
+    "route": "/settings",
+    "width": 1440,
+    "height": 900
+  },
+  {
+    "slug": "08-reports-mobile",
+    "route": "/reports",
+    "width": 414,
+    "height": 2243
+  },
+  {
+    "slug": "09-dashboard-mobile",
+    "route": "/dashboard",
+    "width": 414,
+    "height": 2194
+  },
+  {
+    "slug": "12-empty-dashboard",
+    "route": "/dashboard",
+    "width": 1440,
+    "height": 1293
+  },
+  {
+    "slug": "14-empty-members",
+    "route": "/members",
+    "width": 1440,
+    "height": 900
+  }
+]

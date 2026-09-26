@@ -49,7 +49,7 @@ export function SignupForm() {
             <Input
               id={id}
               name="name"
-              placeholder="Rakib Hasan"
+              placeholder="Your name"
               autoComplete="name"
               invalid={invalid}
               maxLength={60}

@@ -10,9 +10,9 @@ export function MarketingHeader() {
         <Brand href="/" />
 
         <nav className="ml-2 hidden items-center gap-1 md:flex" aria-label="Sections">
-          <HeaderLink href="#how">How it works</HeaderLink>
-          <HeaderLink href="#features">Features</HeaderLink>
-          <HeaderLink href="#math">The math</HeaderLink>
+          <HeaderLink href="#calculation">The calculation</HeaderLink>
+          <HeaderLink href="#rules">The rules</HeaderLink>
+          <HeaderLink href="#demo">Screens</HeaderLink>
           <HeaderLink href="#faq">FAQ</HeaderLink>
         </nav>
 
@@ -59,13 +59,14 @@ export function MarketingFooter() {
         <div className="flex gap-10 text-[13px]">
           <div className="space-y-2">
             <p className="font-semibold">Product</p>
-            <FooterLink href="#features">Features</FooterLink>
-            <FooterLink href="#how">How it works</FooterLink>
-            <FooterLink href="#math">How the math works</FooterLink>
+            <FooterLink href="#calculation">The calculation</FooterLink>
+            <FooterLink href="#rules">The four rules</FooterLink>
+            <FooterLink href="#demo">Screens</FooterLink>
+            <FooterLink href="#features">Details</FooterLink>
           </div>
           <div className="space-y-2">
             <p className="font-semibold">Account</p>
-            <FooterLink href="/signup">Create a mess</FooterLink>
+            <FooterLink href="/signup">Set up a mess</FooterLink>
             <FooterLink href="/login">Sign in</FooterLink>
           </div>
         </div>

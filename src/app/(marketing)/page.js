@@ -1,27 +1,15 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/dal";
 import { MarketingFooter, MarketingHeader } from "./chrome";
-import {
-  ArrowRight,
-  Calculator,
-  CalendarCheck,
-  CheckCircle2,
-  Coins,
-  LayoutDashboard,
-  Receipt,
-  ShieldCheck,
-  TrendingUp,
-  Users,
-  Wallet,
-} from "lucide-react";
+import DemoGallery from "./demo-gallery";
+import { ArrowRight, Printer } from "lucide-react";
 import { buttonClass } from "@/components/ui/button-classes";
-import { formatMoney } from "@/lib/money";
-import Link from "next/link";
 
 export const metadata = {
-  title: "MessMate — Run your mess without the spreadsheet",
+  title: "MessMate — the monthly mess settlement, worked out for you",
   description:
-    "Track bazar, seat rent, utility bills and daily meals for a shared mess. MessMate works out exactly who owes what, every month, automatically.",
+    "Track bazar, seat rent, utilities and daily meals for a shared mess. MessMate shows its working and tells you exactly who owes what.",
 };
 
 export default async function MarketingPage() {
@@ -36,10 +24,11 @@ export default async function MarketingPage() {
 
       <main className="flex-1">
         <Hero />
-        <Problem />
-        <HowItWorks />
-        <Features />
-        <TheMath />
+        <TheCalculation />
+        <TheRules />
+        <WhatYouDo />
+        <Demo />
+        <TheDetails />
         <Faq />
         <ClosingCta />
       </main>
@@ -53,244 +42,152 @@ export default async function MarketingPage() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border">
-      <div className="bg-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-primary-subtle/50 to-transparent"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-5 py-16 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-10 lg:py-24">
-        <div className="max-w-xl">
-          <Chip>One account per mess · members never sign up</Chip>
-
-          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-            Run your mess without
-            the <span className="text-primary">spreadsheet</span>.
+    <section className="border-b border-border">
+      <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-14 sm:py-20 lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-14 lg:py-24">
+        <div className="lg:sticky lg:top-24">
+          <h1 className="text-[2.25rem] font-semibold leading-[1.05] tracking-[-0.02em] sm:text-5xl lg:text-[3.25rem]">
+            The month&rsquo;s mess bill,
+            <br />
+            <span className="text-muted-foreground">worked out and shown.</span>
           </h1>
 
-          <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground">
-            Log what you spend at the bazar, what each person pays for rent, and who ate what each
-            day. MessMate turns that into one monthly settlement — so nobody has to{" "}
-            <span className="text-foreground">&ldquo;do the math&rdquo;</span> at 11pm again.
+          <p className="mt-6 max-w-md text-[17px] leading-relaxed text-muted-foreground">
+            Log the bazar, the rent and who ate what. MessMate turns it into one settlement per
+            person &mdash; and prints the working, so the argument at the end of the month is
+            already settled.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className={buttonClass({ size: "lg", className: "group" })}>
-              Create your mess
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+              Set up your mess
+              <ArrowRight
+                className="size-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
             </Link>
             <Link href="/login" className={buttonClass({ variant: "outline", size: "lg" })}>
-              I already have an account
+              Sign in
             </Link>
           </div>
 
-          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2.5 text-[13.5px] text-muted-foreground">
-            {[
-              "No card needed",
-              "Set up in 2 minutes",
-              "Only you need an account",
-            ].map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 text-primary" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <p className="mt-6 text-[13.5px] text-muted-foreground">
+            One account per mess. The people you cook for are records, not users &mdash; nobody
+            else signs up, and there are no passwords to hand out.
+          </p>
         </div>
 
-        <SettlementPreview />
+        {/* The product is the calculation. Show its shape rather than invent a month. */}
+        <div className="lg:pt-2">
+          <div className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface shadow-overlay">
+            <div className="border-b border-border px-5 py-4">
+              <p className="text-[14px] font-semibold">Everything a month comes down to</p>
+              <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+                No sample figures. This is the whole method, in three lines.
+              </p>
+            </div>
+
+            <div className="divide-y divide-border">
+              <Formula
+                label="The meal rate"
+                lines={["bazar spending", "─────────────  ÷  meals eaten"]}
+                note="Worked out once, then frozen for the month."
+              />
+              <Formula
+                label="What each person owes"
+                lines={[
+                  "meals × rate  +  seat rent  +  utility share",
+                ]}
+                note="Charged to whoever ate, for however long they stayed."
+              />
+              <Formula
+                label="Why the report balances"
+                lines={["collected  +  still owing  =  total billed"]}
+                note="Checked on the page, not asserted in a tooltip."
+              />
+            </div>
+          </div>
+
+          <p className="mt-3 text-[12px] text-muted-foreground">
+            Your real numbers take their place the moment you add your first member.
+          </p>
+        </div>
       </div>
     </section>
   );
 }
 
-function Chip({ children }) {
+function Formula({ label, lines, note }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-primary-border bg-primary-subtle px-3 py-1 text-[12.5px] font-medium text-primary">
-      <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-      {children}
-    </span>
-  );
-}
-
-/** A static, server-rendered glimpse of the real report. No client JS. */
-function SettlementPreview() {
-  const rows = [
-    { name: "Rakib", meals: 78, rent: 4500, due: 7418, paid: 7000, tone: "text-danger" },
-    { name: "Nayeem", meals: 61, rent: 5000, due: 7009, paid: 7000, tone: "text-warning" },
-    { name: "Tanvir", meals: 83, rent: 4500, due: 7681, paid: 7681, tone: "text-success" },
-  ];
-
-  return (
-    <div className="relative">
-      <div
-        className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-primary/12 via-transparent to-transparent blur-2xl"
-        aria-hidden
-      />
-
-      <div className="relative overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface shadow-overlay">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <div>
-            <p className="text-[13px] font-semibold">September 2026 settlement</p>
-            <p className="text-[11.5px] text-muted-foreground">8 active members · bazar ৳28,400</p>
-          </div>
-          <span className="rounded-full bg-primary-subtle px-2.5 py-1 text-[11.5px] font-medium text-primary">
-            Live
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
-          <div className="p-4">
-            <p className="text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
-              Meal rate
-            </p>
-            <p className="nums mt-1 text-2xl font-semibold">{formatMoney(36.92)}</p>
-            <p className="mt-0.5 text-[11.5px] text-muted-foreground">per meal, this month</p>
-          </div>
-          <div className="p-4">
-            <p className="text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground">
-              Still outstanding
-            </p>
-            <p className="nums mt-1 text-2xl font-semibold text-danger">{formatMoney(1427)}</p>
-            <p className="mt-0.5 text-[11.5px] text-muted-foreground">across 2 members</p>
-          </div>
-        </div>
-
-        <table className="w-full text-left text-[13px]">
-          <thead className="border-b border-border bg-surface-muted/70 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 font-semibold">Member</th>
-              <th className="px-2 py-2 text-right font-semibold">Meals</th>
-              <th className="px-2 py-2 text-right font-semibold">Due</th>
-              <th className="px-4 py-2 text-right font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((row) => (
-              <tr key={row.name}>
-                <td className="px-4 py-2.5">
-                  <p className="font-medium">{row.name}</p>
-                  <p className="text-[11.5px] text-muted-foreground">
-                    rent {formatMoney(row.rent)}
-                  </p>
-                </td>
-                <td className="nums px-2 py-2.5 text-right">{row.meals}</td>
-                <td className="nums px-2 py-2.5 text-right">{formatMoney(row.due)}</td>
-                <td className={`px-4 py-2.5 text-right text-[12.5px] font-medium ${row.tone}`}>
-                  {row.due > row.paid
-                    ? `owes ${formatMoney(row.due - row.paid)}`
-                    : "settled"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="px-5 py-4">
+      <p className="text-[12.5px] font-medium text-muted-foreground">{label}</p>
+      {lines.map((line) => (
+        <p
+          key={line}
+          className="mt-1.5 font-mono text-[13px] leading-relaxed tracking-tight text-foreground sm:text-[13.5px]"
+        >
+          {line}
+        </p>
+      ))}
+      <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">{note}</p>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
 
-const PAINS = [
+const FORMULAS = [
   {
-    icon: Calculator,
-    title: "The end-of-month math",
-    body: "Someone always volunteers to divide the bazar bill by the number of meals, and someone always gets it subtly wrong.",
+    label: "Set the rate once",
+    formula: "meal rate = bazar spending ÷ meals eaten",
+    body: "Only groceries set it. Cleaning, repairs and furniture are shared out separately, so one expensive dinner does not quietly raise everyone’s meal cost for the month.",
   },
   {
-    icon: Wallet,
-    title: "Rent, utilities, gas, wifi",
-    body: "Four different bills, split three different ways, remembered from memory. Nobody has a clear picture of what the mess actually costs.",
+    label: "Charge the person who ate",
+    formula: "each share = meals × rate + seat rent + utility share",
+    body: "Rent is each person’s own figure, not a share you work out for them. Utilities and one-off charges divide across the people actually living there that month.",
   },
   {
-    icon: CalendarCheck,
-    title: "Who ate what, every day",
-    body: "People are away, guests show up, someone eats half a breakfast. A tally on the fridge is not a database.",
+    label: "Keep the books square",
+    formula: "billed = collected + outstanding",
+    body: "Every figure is rounded per row, and the leftover is carried as an explicit adjustment. The columns land on the headline total instead of drifting past it.",
   },
 ];
 
-function Problem() {
+function TheCalculation() {
   return (
-    <section className="border-b border-border bg-surface">
-      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-        <SectionHeading
-          eyebrow="The problem"
-          title="Running a mess is three ledgers and a lot of goodwill"
-          description="Almost every mess keeps the same three books somewhere — bazar, fixed bills, and daily meals. Keeping them apart and reconciling them at month end is the entire job. MessMate merges them into one place and does the reconciliation for you."
-        />
-
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {PAINS.map((pain) => (
-            <div
-              key={pain.title}
-              className="rounded-[var(--radius-card)] border border-border bg-background p-5"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-danger-subtle text-danger">
-                <pain.icon className="size-[18px]" aria-hidden />
-              </span>
-              <h3 className="mt-4 text-[15px] font-semibold">{pain.title}</h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{pain.body}</p>
-            </div>
-          ))}
+    <section id="calculation" className="scroll-mt-20 border-b border-border bg-surface">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <h2 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+            Three lines of arithmetic, and nothing hidden behind them
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+            Costing a shared kitchen only turns into an argument when people cannot see how the
+            number was reached. So the calculation is not summarised behind a total &mdash; it is
+            the product.
+          </p>
+          <p className="mt-5 text-[13.5px] leading-relaxed text-muted-foreground">
+            The same three lines every month. That is what makes an old report worth arguing from.
+          </p>
         </div>
-      </div>
-    </section>
-  );
-}
 
-// ---------------------------------------------------------------------------
-
-const STEPS = [
-  {
-    icon: Users,
-    title: "Add your members",
-    body: "Name, phone, seat rent and joining date. Members are records, not users — they never need to sign in, and you never have to hand out passwords.",
-  },
-  {
-    icon: Receipt,
-    title: "Log bazar and other spending",
-    body: "Each grocery run goes in with a date, a category and an amount. Bazar spending drives the meal rate; everything else is shared evenly.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Mark daily meals",
-    body: "Breakfast, lunch and dinner per person, in halves. One tap for an ordinary day where everyone ate, and edit single cells when someone was away.",
-  },
-  {
-    icon: LayoutDashboard,
-    title: "Collect the settlement",
-    body: "Record what each person paid, see exactly what is still outstanding, and print a clean statement the whole mess can read.",
-  },
-];
-
-function HowItWorks() {
-  return (
-    <section id="how" className="scroll-mt-20 border-b border-border">
-      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-        <SectionHeading
-          eyebrow="How it works"
-          title="Four things to do. Then the month takes care of itself."
-          description="There is no per-member setup and no invitations to send. You create the mess, you are done."
-        />
-
-        <ol className="mt-12 grid gap-5 sm:grid-cols-2">
-          {STEPS.map((step, index) => (
-            <li
-              key={step.title}
-              className="relative rounded-[var(--radius-card)] border border-border bg-surface p-5"
-            >
-              <div className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-subtle text-primary">
-                  <step.icon className="size-[18px]" aria-hidden />
+        <ol className="divide-y divide-border border-y border-border">
+          {FORMULAS.map((item, index) => (
+            <li key={item.label} className="py-7">
+              <div className="flex items-baseline gap-4">
+                <span className="nums shrink-0 text-[13px] font-semibold text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="nums text-[12px] font-semibold text-muted-foreground">
-                  STEP {index + 1}
-                </span>
+                <div className="min-w-0">
+                  <h3 className="text-[15.5px] font-semibold leading-snug">{item.label}</h3>
+                  <p className="mt-2.5 overflow-x-auto rounded-[var(--radius-field)] border border-border bg-background px-3.5 py-2.5 font-mono text-[12.5px] leading-relaxed tracking-tight sm:text-[13px]">
+                    {item.formula}
+                  </p>
+                  <p className="mt-2.5 text-[14px] leading-relaxed text-muted-foreground">
+                    {item.body}
+                  </p>
+                </div>
               </div>
-              <h3 className="mt-4 text-[15px] font-semibold">{step.title}</h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -301,60 +198,92 @@ function HowItWorks() {
 
 // ---------------------------------------------------------------------------
 
-const FEATURES = [
+const RULES = [
   {
-    icon: Calculator,
-    title: "Automatic monthly settlement",
-    body: "Meal rate, seat rent, utilities and shared costs are combined per person. No spreadsheets, no re-deriving last month's answer.",
+    rule: "Meals are charged to whoever ate them",
+    detail:
+      "Including people who have since left. The food was bought and eaten, so that person owes their share of it — until it is collected.",
   },
   {
-    icon: CalendarCheck,
-    title: "Half-meal accuracy",
-    body: "Someone eating only dinner? Record 0.5. Meal counts are tracked in halves, which is where most messes quietly lose track.",
+    rule: "Someone who leaves mid-month stops owing the fixed costs",
+    detail:
+      "Their seat rent and their share of utilities end on the day they go. Their meals do not, and their payment history stays, so every earlier month still balances.",
   },
   {
-    icon: Wallet,
-    title: "Utility bills that add up",
-    body: "Water, electricity, gas, internet, plus any one-off charges you need — split evenly across active members.",
+    rule: "Half meals are counted as half",
+    detail:
+      "Meal counts are held in halves, so someone who only ate dinner is recorded as half a meal rather than rounded up. Rounding is where messes quietly lose track of who ate what.",
   },
   {
-    icon: Users,
-    title: "Seat rent per person",
-    body: "Give each member their own rent. Active members are charged; archived ones are not, so leavers stop appearing in the maths.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Track what you actually spent",
-    body: "See bazar versus other spending, month over month, so you know where the money is really going.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Private by default",
-    body: "Your mess's data belongs to you alone. Each account is fully isolated, and members' personal details are never exposed anywhere public.",
+    rule: "Each month stands on its own",
+    detail:
+      "Meals, spending and payments are all held per month. Move between months freely — last March is still there, still reconciling, still printable.",
   },
 ];
 
-function Features() {
+function TheRules() {
   return (
-    <section id="features" className="scroll-mt-20 border-b border-border bg-surface">
+    <section id="rules" className="scroll-mt-20 border-b border-border">
       <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-        <SectionHeading
-          eyebrow="Features"
-          title="Everything a mess manager actually needs"
-          description="No feature list padded with things a kitchen does not need. Just the things that make month-end boring instead of stressful."
-        />
+        <h2 className="max-w-2xl text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+          The four rules that decide who pays what
+        </h2>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-[var(--radius-card)] border border-border bg-background p-5"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary">
-                <feature.icon className="size-[18px]" aria-hidden />
-              </span>
-              <h3 className="mt-4 text-[15px] font-semibold">{feature.title}</h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{feature.body}</p>
+        <ol className="mt-12 grid gap-x-12 gap-y-9 sm:grid-cols-2">
+          {RULES.map((item, index) => (
+            <li key={item.rule} className="border-t border-border pt-5">
+              <p className="nums text-[12.5px] font-semibold text-muted-foreground">
+                {String(index + 1).padStart(2, "0")}
+              </p>
+              <h3 className="mt-2 text-[15.5px] font-semibold leading-snug">{item.rule}</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+                {item.detail}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+const STEPS = [
+  {
+    title: "Name the people you cook for",
+    body: "A name, a phone number, their seat rent and when they joined. That is the whole record. No invitation, no password, nothing for them to do.",
+  },
+  {
+    title: "Log what the month actually cost",
+    body: "Every bazar run goes in with a date, a category and an amount. Utilities and one-off charges are entered once and split automatically.",
+  },
+  {
+    title: "Mark meals as you go",
+    body: "Breakfast, lunch and dinner per person, in halves. A single tap fills an ordinary day; edit the odd cell when plans change.",
+  },
+  {
+    title: "Collect, and print the statement",
+    body: "Record what each person has paid, watch the outstanding figure fall, and hand over a statement the whole mess can read without you explaining it.",
+  },
+];
+
+function WhatYouDo() {
+  return (
+    <section id="how" className="scroll-mt-20 border-b border-border bg-surface">
+      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
+        <h2 className="max-w-2xl text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+          Four things to do. Then the month takes care of itself.
+        </h2>
+
+        <div className="mt-12 grid gap-x-12 gap-y-9 sm:grid-cols-2">
+          {STEPS.map((step, index) => (
+            <div key={step.title}>
+              <p className="nums text-[12.5px] font-semibold text-muted-foreground">
+                Step {index + 1}
+              </p>
+              <h3 className="mt-2 text-[15.5px] font-semibold leading-snug">{step.title}</h3>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">{step.body}</p>
             </div>
           ))}
         </div>
@@ -365,70 +294,91 @@ function Features() {
 
 // ---------------------------------------------------------------------------
 
-function TheMath() {
-  const rows = [
-    {
-      head: "Meal cost",
-      formula: "meals eaten × meal rate",
-      note: "Charged to everyone, because you pay for the food you ate. Meal rate = total bazar ÷ total meals.",
-    },
-    {
-      head: "Seat rent",
-      formula: "that member's own rent",
-      note: "Only charged to active members. Archived members are skipped entirely.",
-    },
-    {
-      head: "Utilities",
-      formula: "(water + electric + gas + wifi + extras) ÷ active members",
-      note: "Split evenly, so the mess pays each utility bill once and shares it out.",
-    },
-    {
-      head: "Other shared costs",
-      formula: "(cleaning, maintenance, furniture…) ÷ active members",
-      note: "Every non-bazar expense is shared evenly among active members.",
-    },
-  ];
-
+/**
+ * Real screenshots of the app, taken from the seeded development fixtures by
+ * `npm run shoot:demo`. This is the part of the page that cannot be faked - the
+ * pixels are the actual screens.
+ */
+function Demo() {
   return (
-    <section id="math" className="scroll-mt-20 border-b border-border">
+    <section id="demo" className="scroll-mt-20 border-b border-border">
       <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
-          <div>
-            <SectionHeading
-              eyebrow="The math"
-              title="Four rules. No surprises."
-              description="Mess costing only feels unfair when people cannot see how the number was reached. Here is the entire calculation — it is the same on every report, and the rate is fixed once for the whole month."
-            />
-            <p className="mt-6 rounded-[var(--radius-card)] border border-border bg-surface p-4 text-[13.5px] leading-relaxed text-muted-foreground">
-              <Coins className="mr-2 inline size-4 text-primary" aria-hidden />
-              One rate for everyone, all month. If the rate changed as people ate, the last
-              person would always be the one left covering the difference.
-            </p>
-          </div>
-
-          <div className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface">
-            <ul className="divide-y divide-border">
-              {rows.map((row) => (
-                <li key={row.head} className="p-5">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h3 className="text-[14.5px] font-semibold">{row.head}</h3>
-                    <code className="nums rounded-md bg-surface-muted px-2 py-1 text-[12px] font-medium text-primary">
-                      {row.formula}
-                    </code>
-                  </div>
-                  <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{row.note}</p>
-                </li>
-              ))}
-            </ul>
-            <div className="border-t border-border bg-surface-muted/60 p-5">
-              <p className="text-[13.5px] font-semibold">What a member owes</p>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                meal cost + seat rent + utility share + other shared costs, minus whatever they
-                have already paid. A positive number means they owe you.
-              </p>
-            </div>
-          </div>
+        <div className="max-w-2xl">
+          <h2 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+            The screens you will actually use
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+            No mockups. These are the built pages, filled with a month of sample
+            data so you can see a full settlement rather than an empty screen.
+          </p>
         </div>
+
+        <div className="mt-12">
+          <DemoGallery />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * A definition list rather than a grid of icon cards, because the content is
+ * uneven sentences — and pretending otherwise is what makes a feature grid feel
+ * like filler.
+ */
+const DETAILS = [
+  {
+    term: "Half meals are first class",
+    detail:
+      "Meal counts are stored in halves, not whole numbers, so a half-eaten day is recorded as one rather than rounded to two.",
+  },
+  {
+    term: "Archived members drop out of shared costs",
+    detail:
+      "Mark someone archived and they stop being charged rent and utilities from that day. Their meals and their payment history stay on record.",
+  },
+  {
+    term: "Each month stands alone",
+    detail:
+      "Meals, spending and payments are all held per month, so an old month can be reopened, checked and reprinted whenever someone disputes it.",
+  },
+  {
+    term: "Bazar and other spending stay separate",
+    detail:
+      "Only groceries set the meal rate. Everything else is shared evenly instead, so the two kinds of cost can be reviewed independently.",
+  },
+  {
+    term: "Built to be printed",
+    detail:
+      "Reports are laid out for paper or PDF, with the working on the page. Members get a number they can check instead of a figure you have to defend.",
+  },
+  {
+    term: "One mess, one owner",
+    detail:
+      "Accounts are isolated at the database level, not just in the interface. There is no shared login to leak and no way to reach another mess, even by editing a URL.",
+  },
+];
+
+function TheDetails() {
+  return (
+    <section id="features" className="scroll-mt-20 border-b border-border">
+      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
+        <h2 className="max-w-2xl text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+          The details that decide whether it works
+        </h2>
+
+        <dl className="mt-12 grid gap-x-12 gap-y-8 sm:grid-cols-2">
+          {DETAILS.map((item) => (
+            <div key={item.term} className="border-t border-border pt-5">
+              <dt className="text-[14.5px] font-semibold">{item.term}</dt>
+              <dd className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+                {item.detail}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
@@ -438,28 +388,28 @@ function TheMath() {
 
 const FAQS = [
   {
-    q: "Do my mess members need to create accounts?",
-    a: "No. One account runs one mess — yours. Members are simply records: a name, phone number and seat rent. There is nothing for them to sign up for, and no password to share or reset.",
+    q: "Do my mess members need accounts?",
+    a: "No. One account runs one mess — yours. Members are records: a name, phone number and seat rent. There is nothing for them to sign up for, and no password to share, reset or leak.",
   },
   {
     q: "What happens when someone leaves?",
-    a: "Set them to Archived. They stop being charged rent and utility shares from then on, but their meal history and past payments stay on record so old months still balance out.",
+    a: "Set them to archived. They stop being charged rent and utility shares from that day, but their meal history and any payments stay on record — so they still owe for the meals they ate, and last month still balances.",
   },
   {
     q: "Someone was away for two days. How do I record that?",
-    a: "Leave their cells at zero for those days. Meal counts are tracked in halves, so if someone ate only dinner you record 0.5 rather than rounding up to a full meal.",
+    a: "Leave their cells empty for those days. Meals are held in halves, so if someone ate only dinner you record half a meal rather than rounding up to a whole one.",
   },
   {
-    q: "How is the meal rate worked out?",
-    a: "Total bazar spending divided by total meals eaten that month. It is calculated once and applied to everyone for the whole month, so nobody's bill changes because someone else ate first.",
+    q: "How is the meal rate actually worked out?",
+    a: "Total bazar spending divided by total meals eaten that month, fixed once and applied to everyone for the whole month. Nobody’s bill changes because somebody else ate first.",
   },
   {
-    q: "Can I see the whole report as a bill?",
-    a: "Yes. Every report is laid out to be printed or saved as a PDF, with a clear summary per member and a total at the bottom that always reconciles.",
+    q: "Can I see the working, not just a total?",
+    a: "That is the main screen. Meals times rate, rent, utility share and everything collected are shown per person, with the columns reconciling to the headline total on the page.",
   },
   {
     q: "What does it cost?",
-    a: "Nothing to start. Create your mess, add your members, and see the settlement for this month before you pay for anything.",
+    a: "Nothing to start. Set the mess up, add your members and see this month’s settlement before you pay for anything.",
   },
 ];
 
@@ -467,23 +417,32 @@ function Faq() {
   return (
     <section id="faq" className="scroll-mt-20 border-b border-border bg-surface">
       <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:py-20">
-        <SectionHeading eyebrow="FAQ" title="Questions a mess manager actually asks" />
+        <h2 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+          Questions a mess manager actually asks
+        </h2>
 
-        <div className="mt-10 divide-y divide-border overflow-hidden rounded-[var(--radius-card)] border border-border bg-background">
+        <div className="mt-10 divide-y divide-border border-y border-border">
           {FAQS.map((item) => (
-            <details key={item.q} className="group px-5 py-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[14.5px] font-semibold marker:hidden">
+            <details key={item.q} className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[14.5px] font-semibold marker:hidden">
                 {item.q}
                 <span
                   className="grid size-5 shrink-0 place-items-center rounded-full border border-border text-muted-foreground transition-transform group-open:rotate-45"
                   aria-hidden
                 >
-                  <svg viewBox="0 0 20 20" className="size-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="size-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
                     <path d="M10 4v12M4 10h12" />
                   </svg>
                 </span>
               </summary>
-              <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted-foreground">{item.a}</p>
+              <p className="pb-4 text-[13.5px] leading-relaxed text-muted-foreground">{item.a}</p>
             </details>
           ))}
         </div>
@@ -496,44 +455,38 @@ function Faq() {
 
 function ClosingCta() {
   return (
-    <section className="relative overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary-subtle/50 via-transparent to-transparent"
-        aria-hidden
-      />
-      <div className="relative mx-auto w-full max-w-3xl px-5 py-20 text-center sm:py-24">
-        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Your next settlement is two minutes away
-        </h2>
-        <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-muted-foreground">
-          Create your mess, add the people you cook for, and see this month&rsquo;s numbers before you
-          close the kitchen.
-        </p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link href="/signup" className={buttonClass({ size: "lg" })}>
-            Create your mess
-          </Link>
-          <Link href="/login" className={buttonClass({ variant: "outline", size: "lg" })}>
-            Sign in
-          </Link>
+    <section className="border-b border-border">
+      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-xl">
+            <h2 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2.25rem]">
+              This month&rsquo;s settlement is a few minutes away
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+              Set the mess up, add the people you cook for, and see where the month stands before
+              you close the kitchen.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+            <Link href="/signup" className={buttonClass({ size: "lg", className: "group" })}>
+              Set up your mess
+              <ArrowRight
+                className="size-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+            <Link href="/login" className={buttonClass({ variant: "outline", size: "lg" })}>
+              Sign in
+            </Link>
+          </div>
         </div>
+
+        <p className="mt-10 flex items-center gap-2 border-t border-border pt-5 text-[13px] text-muted-foreground">
+          <Printer className="size-4 shrink-0" aria-hidden />
+          Every report is laid out to be printed or saved as a PDF.
+        </p>
       </div>
     </section>
-  );
-}
-
-function SectionHeading({ eyebrow, title, description }) {
-  return (
-    <div className="max-w-2xl">
-      <p className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-primary">
-        {eyebrow}
-      </p>
-      <h2 className="mt-3 text-[27px] font-semibold leading-tight tracking-tight sm:text-[32px]">
-        {title}
-      </h2>
-      {description ? (
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{description}</p>
-      ) : null}
-    </div>
   );
 }

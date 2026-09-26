@@ -166,7 +166,7 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
                   id={id}
                   name="name"
                   defaultValue={member?.name ?? ""}
-                  placeholder="Asha Rahman"
+                  placeholder="Member name"
                   invalid={invalid}
                   maxLength={60}
                   required
