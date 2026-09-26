@@ -30,7 +30,7 @@ export function Sheet({ open, onClose, side = "right", title, description, child
         type="button"
         aria-label="Close panel"
         onClick={onClose}
-        className="absolute inset-0 animate-fade-in cursor-default bg-slate-950/50 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-fade-in cursor-default bg-scrim backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}
@@ -39,7 +39,7 @@ export function Sheet({ open, onClose, side = "right", title, description, child
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          "absolute flex flex-col overflow-hidden border-border bg-surface-raised shadow-overlay outline-none",
+          "absolute flex flex-col overflow-hidden border border-border bg-surface-raised shadow-overlay outline-none",
           "animate-slide-in-right",
           positions[side] ?? positions.right,
           className,

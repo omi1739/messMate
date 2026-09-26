@@ -24,9 +24,11 @@ export const metadata = {
 };
 
 export const viewport = {
+  // Derived from the OKLCH values in globals.css: light --background and dark
+  // --background. Kept in step by check-contrast.mjs.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#12191c" },
+    { media: "(prefers-color-scheme: light)", color: "#fafaf8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c1212" },
   ],
 };
 

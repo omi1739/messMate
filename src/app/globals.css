@@ -25,6 +25,8 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
 
+  --color-scrim: var(--scrim);
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
@@ -68,6 +70,8 @@
   --border: oklch(0.912 0.006 106);
   --border-strong: oklch(0.652 0.008 106);
 
+  --scrim: oklch(0.24 0.015 106 / 0.45);
+
   --primary: oklch(0.51 0.116 178);
   --primary-hover: oklch(0.45 0.115 178);
   --primary-foreground: oklch(0.99 0.005 178);
@@ -97,8 +101,13 @@
   --background: oklch(0.175 0.008 200);
   --foreground: oklch(0.965 0.004 106);
 
+  /* Elevation runs background < surface-muted < surface < surface-raised, the
+     same order as the light theme. `surface-muted` means "recessed" in both
+     themes: a tab track, a table header or a field inside a card. When it was
+     lighter than `surface` here, every one of those read as raised instead,
+     which is what made the dark theme feel assembled rather than designed. */
   --surface: oklch(0.222 0.009 200);
-  --surface-muted: oklch(0.262 0.011 200);
+  --surface-muted: oklch(0.196 0.008 200);
   --surface-raised: oklch(0.3 0.012 200);
 
   --muted-foreground: oklch(0.7 0.014 200);
@@ -106,6 +115,10 @@
 
   --border: oklch(0.31 0.012 200);
   --border-strong: oklch(0.514 0.014 200);
+
+  /* A near-black scrim is invisible over a near-black page, so dialogs lost
+     their edge in dark mode. Darker and heavier than the light value. */
+  --scrim: oklch(0.12 0.01 200 / 0.72);
 
   --primary: oklch(0.72 0.13 178);
   --primary-hover: oklch(0.78 0.135 178);
@@ -130,6 +143,14 @@
   --info-subtle: oklch(0.31 0.06 245);
 
   --shadow-color: 220 60% 2%;
+
+  /* A shadow the colour of a dark page on a dark page is invisible: the light
+     alphas (0.05-0.22) carry depth in light mode and nothing in dark mode, so
+     popovers and sheets read as pasted-on rectangles. Dark needs roughly an
+     order of magnitude more opacity to do the same job. */
+  --shadow-soft: 0 1px 2px 0 hsl(var(--shadow-color) / 0.4), 0 1px 3px 0 hsl(var(--shadow-color) / 0.5);
+  --shadow-raised: 0 2px 4px -1px hsl(var(--shadow-color) / 0.45), 0 8px 20px -4px hsl(var(--shadow-color) / 0.6);
+  --shadow-overlay: 0 10px 15px -3px hsl(var(--shadow-color) / 0.5), 0 25px 50px -12px hsl(var(--shadow-color) / 0.8);
 }
 
 /* ---------------------------------------------------------------------------

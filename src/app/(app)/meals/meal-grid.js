@@ -165,7 +165,7 @@ export function MealGrid({ members, days, cells }) {
                   <td
                     key={day.key}
                     className={cn(
-                      "nums border-border bg-surface-muted px-1 py-1.5 text-center text-[11.5px]",
+                      "nums bg-surface-muted px-1 py-1.5 text-center text-[11.5px]",
                       dayTotals[day.key] > 0 ? "font-semibold" : "text-muted-foreground/40",
                       day.isToday && "bg-primary-subtle/40",
                     )}

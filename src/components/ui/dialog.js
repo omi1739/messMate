@@ -26,7 +26,7 @@ export function Dialog({ open, onClose, children, className, label }) {
         type="button"
         aria-label="Close dialog"
         onClick={handleClose}
-        className="absolute inset-0 animate-fade-in cursor-default bg-slate-950/45 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-fade-in cursor-default bg-scrim backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}
@@ -35,7 +35,7 @@ export function Dialog({ open, onClose, children, className, label }) {
         aria-label={label}
         tabIndex={-1}
         className={cn(
-          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden bg-surface-raised shadow-overlay outline-none",
+          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden border border-border bg-surface-raised shadow-overlay outline-none",
           "animate-slide-up rounded-t-2xl sm:max-w-lg sm:animate-scale-in sm:rounded-[var(--radius-card)]",
           className,
         )}
