@@ -5,14 +5,14 @@ import { setUserSuspendedAction, deleteUserAction } from "@/app/actions/admin";
 import { useActionForm, SubmitButton } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { DeleteConfirm } from "@/components/ui/delete-confirm";
-import { formatDate } from "@/lib/date";
-import { cn } from "@/lib/utils";
+import { formatDate, relativeTime } from "@/lib/date";
+import { Tag, UsageTag } from "./bits";
 
 /**
- * One row of the accounts table: the account's mess, its member count, and the
- * suspend / reinstate / delete controls. Destructive actions are deliberately
- * un-styled until you hover or open them, so the table does not read as a wall
- * of red.
+ * One row of the accounts table: the account's mess, how much it has actually
+ * recorded, when the owner was last here, and the suspend / reinstate / delete
+ * controls. Destructive actions are deliberately un-styled until you hover or
+ * open them, so the table does not read as a wall of red.
  */
 export function AccountRow({ user, isSelf }) {
   const suspend = useActionForm(setUserSuspendedAction, { successToast: true });
@@ -20,10 +20,10 @@ export function AccountRow({ user, isSelf }) {
 
   return (
     <tr className="border-b border-border last:border-0">
-      <td className="py-3 pr-3 align-top">
+      <td className="px-5 py-3 pr-3 align-top">
         <p className="text-[13.5px] font-medium">
           {user.name}
-          {isSelf ? <Tag tone="primary">you</Tag> : null}
+          {isSelf ? <Tag tone="primary" className="ml-1.5">you</Tag> : null}
         </p>
         <p className="text-[12px] text-muted-foreground">{user.email}</p>
       </td>
@@ -42,12 +42,22 @@ export function AccountRow({ user, isSelf }) {
         )}
       </td>
 
-      <td className="py-3 pr-3 align-top text-[12px] text-muted-foreground">
+      <td className="py-3 pr-3 align-top">
+        <UsageTag usage={user.usage} />
+        <span className="nums mt-1 block text-[11.5px] text-muted-foreground">
+          {user.records} {user.records === 1 ? "record" : "records"}
+        </span>
+      </td>
+
+      <td className="py-3 pr-3 align-top text-[12px] whitespace-nowrap text-muted-foreground">
         <span className="nums">{formatDate(user.createdAt)}</span>
+      </td>
+
+      <td className="py-3 pr-3 align-top text-[12px] whitespace-nowrap">
         {user.lastLoginAt ? (
-          <span className="block">last seen {formatDate(user.lastLoginAt)}</span>
+          <span className="text-foreground">{relativeTime(user.lastLoginAt)}</span>
         ) : (
-          <span className="block">never signed in</span>
+          <span className="text-muted-foreground">never</span>
         )}
       </td>
 
@@ -59,7 +69,7 @@ export function AccountRow({ user, isSelf }) {
         )}
       </td>
 
-      <td className="py-3 pl-3 text-right align-top">
+      <td className="py-3 pr-5 text-right align-top">
         <div className="flex items-center justify-end gap-1">
           {isSelf ? (
             <span className="text-[11.5px] text-muted-foreground">—</span>
@@ -123,25 +133,5 @@ export function AccountRow({ user, isSelf }) {
         ) : null}
       </td>
     </tr>
-  );
-}
-
-function Tag({ tone = "default", children }) {
-  const tones = {
-    default: "bg-surface-muted text-muted-foreground",
-    primary: "bg-primary-subtle text-primary",
-    success: "bg-success-subtle text-success",
-    warning: "bg-warning-subtle text-warning",
-  };
-
-  return (
-    <span
-      className={cn(
-        "ml-1.5 inline-block rounded-full px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide",
-        tones[tone],
-      )}
-    >
-      {children}
-    </span>
   );
 }

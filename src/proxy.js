@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { describeRequest, recordVisit } from "@/lib/analytics";
 
 /**
  * Optimistic route protection.
@@ -15,11 +16,58 @@ import { auth } from "@/auth";
 
 const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/admin-login"]);
 
+/**
+ * The owner app, matched on the first segment so "/members/123" is covered too.
+ *
+ * This list is what keeps the sign-in redirect pointed at real pages. Anything
+ * NOT listed here is an unknown URL and must be left alone so Next can render
+ * the app-wide 404 — a blanket "redirect everything unlisted" rule sends every
+ * mistyped link to the login form and hides 404s from crawlers.
+ */
+const OWNER_SEGMENTS = new Set([
+  "dashboard",
+  "members",
+  "meals",
+  "expenses",
+  "bills",
+  "reports",
+  "settings",
+]);
+
 function isPublic(path) {
   return PUBLIC_PATHS.has(path);
 }
 
-export default auth((request) => {
+function isOwnerArea(path) {
+  return OWNER_SEGMENTS.has(path.split("/")[1] ?? "");
+}
+
+/**
+ * Hands a request to the traffic recorder without holding up the response.
+ *
+ * The write goes to MongoDB, so it must not sit between the visitor and the
+ * page. `waitUntil` lets the server finish the response and keep working in the
+ * background, which is what stops the database write from being cut short when
+ * the process would otherwise be frozen.
+ */
+function countVisit(request, event) {
+  let visit;
+  try {
+    visit = describeRequest(request);
+  } catch {
+    return; // never let analytics break routing
+  }
+  if (!visit) return;
+
+  const work = recordVisit(visit);
+  if (typeof event?.waitUntil === "function") {
+    event.waitUntil(work);
+  } else {
+    void work;
+  }
+}
+
+export default auth((request, event) => {
   const { nextUrl } = request;
   const path = nextUrl.pathname;
   const user = request.auth?.user;
@@ -38,14 +86,15 @@ export default auth((request) => {
     return NextResponse.redirect(new URL("/admin", nextUrl));
   }
 
-  if (!isLoggedIn && !isPublic(path)) {
+  // Signed-out visitors get the login form for the app's real pages only.
+  if (!isLoggedIn && isOwnerArea(path)) {
     const target = new URL("/login", nextUrl);
-    if (path !== "/") target.searchParams.set("next", path);
+    target.searchParams.set("next", path);
     return NextResponse.redirect(target);
   }
 
   // A super admin has no mess, so they have nothing to do inside the owner app.
-  if (isAdmin && isLoggedIn && !isPublic(path) && !isAdminArea) {
+  if (isAdmin && isOwnerArea(path)) {
     return NextResponse.redirect(new URL("/admin", nextUrl));
   }
 
@@ -53,6 +102,11 @@ export default auth((request) => {
   if (isLoggedIn && isPublic(path)) {
     return NextResponse.redirect(new URL(isAdmin ? "/admin" : "/dashboard", nextUrl));
   }
+
+  // Counted only once the page is genuinely going to render. A signed-out
+  // visitor bouncing off /dashboard to /login has not viewed /dashboard, and
+  // counting the bounce would make every protected page look busy.
+  countVisit(request, event);
 
   return NextResponse.next();
 });

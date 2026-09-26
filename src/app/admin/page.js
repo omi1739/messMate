@@ -1,139 +1,120 @@
-import { getPlatformOverview, getMessRollup } from "@/lib/data/admin";
+import { getMessRollup, getPlatformOverview, getTrafficOverview } from "@/lib/data/admin";
 import { getCurrentUser } from "@/lib/dal";
 import { logoutAction } from "@/app/actions/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { formatDate, relativeTime } from "@/lib/date";
-import { Users } from "lucide-react";
-import { AccountRow } from "./account-row";
+import { Activity, Building2, CalendarClock, Eye, LogIn, UserCheck, Users } from "lucide-react";
+import { AccountsPanel, MessesPanel } from "./accounts-panel";
+import { SignupChart, TrafficPanel } from "./traffic-panel";
 
 export const metadata = { title: "Admin" };
 
 export default async function AdminPage() {
-  const [overview, rollup, admin] = await Promise.all([
+  const [overview, rollup, traffic, admin] = await Promise.all([
     getPlatformOverview(),
     getMessRollup(),
+    getTrafficOverview(30),
     getCurrentUser(),
   ]);
 
-  const { stats, users } = overview;
+  const { stats, users, signupSeries, signupTrend } = overview;
+  const engaged = stats.activeMembers > 0 ? stats.activeMembers / Math.max(stats.members, 1) : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <header>
         <h1 className="text-xl font-semibold tracking-tight">Platform</h1>
         <p className="mt-0.5 text-[13.5px] text-muted-foreground">
-          Every account on the platform, as {admin?.email}. Deleting an account removes its mess and
-          all of that mess&rsquo;s records.
+          Signed in as {admin?.email}. Every account, every mess, and the traffic that reaches this
+          site.
         </p>
       </header>
 
+      {/* ---- Headline numbers ------------------------------------------- */}
       <section aria-label="Platform totals" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
+          icon={Users}
           label="Accounts"
           value={stats.users}
           hint={`${stats.activeUsers} active · ${stats.suspendedUsers} suspended`}
           tone="primary"
         />
-        <StatCard label="Messes" value={stats.messes} hint={`${stats.totalMessMembers} member rows`} />
         <StatCard
-          label="Members"
-          value={stats.members}
-          hint={`${stats.activeMembers} currently active`}
+          icon={UserCheck}
+          label="Signed in this week"
+          value={stats.signedInThisWeek}
+          hint={`${stats.neverSignedIn} have never signed in`}
+          tone="success"
         />
         <StatCard
-          label="Newest account"
-          value={stats.newestUser ? relativeTime(stats.newestUser.createdAt) : "—"}
-          hint={stats.newestUser?.email}
+          icon={Building2}
+          label="Messes"
+          value={stats.messes}
+          hint={`${stats.totalMessMembers} member rows`}
+        />
+        <StatCard
+          icon={Activity}
+          label="Members"
+          value={stats.members}
+          hint={`${stats.activeMembers} active · ${Math.round(engaged * 100)}% of the roster`}
         />
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Accounts</CardTitle>
-          <CardDescription>
-            Suspending blocks sign-in without touching any data. Deleting is permanent.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {users.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No accounts yet"
-              description="Accounts appear here as soon as somebody signs up."
-              compact
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[42rem] border-collapse text-left">
-                <caption className="sr-only">All platform accounts and their messes.</caption>
-                <thead>
-                  <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <th scope="col" className="py-2 pr-3 font-semibold">
-                      Account
-                    </th>
-                    <th scope="col" className="py-2 pr-3 font-semibold">
-                      Mess
-                    </th>
-                    <th scope="col" className="py-2 pr-3 font-semibold">
-                      Joined
-                    </th>
-                    <th scope="col" className="py-2 font-semibold">
-                      State
-                    </th>
-                    <th scope="col" className="py-2 pl-3 text-right font-semibold">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <AccountRow key={user.id} user={user} isSelf={user.id === admin?.id} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* ---- Traffic ---------------------------------------------------- */}
+      <section aria-label="Traffic" className="space-y-5">
+        <div className="flex items-center gap-2">
+          <Eye className="size-4 text-muted-foreground" aria-hidden />
+          <h2 className="text-[15px] font-semibold tracking-tight">Traffic</h2>
+        </div>
+        <TrafficPanel traffic={traffic} />
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Mess activity</CardTitle>
-          <CardDescription>
-            Record counts per mess, newest first. Useful for spotting abandoned signups.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {rollup.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground">No messes yet.</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {rollup.map((mess) => (
-                <li
-                  key={mess.id}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13.5px] font-medium">{mess.name}</p>
-                    <p className="truncate text-[11.5px] text-muted-foreground">
-                      {mess.owner?.name} · {mess.owner?.email}
-                    </p>
-                  </div>
-                  <p className="nums shrink-0 text-[12.5px] text-muted-foreground">
-                    {mess._count.members} members · {mess._count.meals} meals ·{" "}
-                    {mess._count.expenses} expenses · {mess._count.payments} payments
-                  </p>
-                  <p className="shrink-0 text-[11.5px] text-muted-foreground">
-                    created {formatDate(mess.createdAt)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {/* ---- Growth and accounts ---------------------------------------- */}
+      <section aria-label="Accounts and growth" className="space-y-5">
+        <div className="grid gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <SignupChart series={signupSeries} trend={signupTrend} />
+          </div>
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Account health</CardTitle>
+              <CardDescription>
+                The two numbers worth watching: accounts that have never come back, and messes that
+                were signed up for but never used.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <HealthRow
+                icon={CalendarClock}
+                label="Never signed in"
+                value={stats.neverSignedIn}
+                total={stats.users}
+                hint="Signed up but never returned — usually a mistyped email or a shared link."
+              />
+              <HealthRow
+                icon={Building2}
+                label="Never used"
+                value={stats.emptyAccounts}
+                total={stats.users}
+                hint="Signed in, but no member, meal or bill was ever entered."
+              />
+              <HealthRow
+                icon={LogIn}
+                label="Newest account"
+                value={stats.newestUser?.name ?? "—"}
+                hint={stats.newestUser?.email}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <AccountsPanel users={users} adminId={admin?.id} />
+      </section>
+
+      {/* ---- Per-mess --------------------------------------------------- */}
+      <section aria-label="Messes">
+        <MessesPanel messes={rollup} />
+      </section>
 
       <Card>
         <CardHeader>
@@ -153,6 +134,34 @@ export default async function AdminPage() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function HealthRow({ icon: Icon, label, value, total, hint }) {
+  const share = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex items-center gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-muted text-muted-foreground">
+          <Icon className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium">{label}</p>
+          <p className="truncate text-[12px] text-muted-foreground">{hint}</p>
+        </div>
+        <p className="nums shrink-0 text-right text-[15px] font-semibold">
+          {typeof value === "number" ? value : value}
+          {typeof total === "number" ? (
+            <span className="ml-1 text-[12px] font-normal text-muted-foreground">/ {total}</span>
+          ) : null}
+        </p>
+      </div>
+      {typeof total === "number" ? (
+        <div className="mt-1.5 ml-10.5 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
+        </div>
+      ) : null}
     </div>
   );
 }

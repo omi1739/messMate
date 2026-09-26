@@ -1,5 +1,5 @@
 $ErrorActionPreference = "SilentlyContinue"
-$base = "http://localhost:3000"
+$base = if ($env:MESSMATE_BASE_URL) { $env:MESSMATE_BASE_URL } else { "http://localhost:3000" }
 
 function Get-Env($key) {
   $raw = (Get-Content .env | Select-String "^$key=" | ForEach-Object { $_.Line -replace "^$key=", '' }) -join ''
@@ -36,6 +36,11 @@ $anon = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 Probe "anon" $anon "/dashboard"
 Probe "anon" $anon "/admin"
 Probe "anon" $anon "/"
+# An unknown URL must reach the app-wide 404, not be redirected to the login
+# form. The proxy used to swallow every unlisted path, which turned every
+# mistyped link into a sign-in prompt and hid 404s from crawlers.
+Probe "anon" $anon "/no-such-page"
+Probe "owner" $owner "/no-such-page"
 
 Write-Output "== owner session =="
 Probe "owner" $owner "/dashboard"

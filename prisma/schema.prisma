@@ -185,3 +185,59 @@ model Payment {
   @@index([messId, month])
   @@map("payments")
 }
+
+// ---------------------------------------------------------------------------
+// Traffic (super admin only)
+//
+// Collected in src/proxy.js, which runs in the Node runtime, so there is no
+// client script, no cookie and no third party involved. Counting a *request*
+// per row would grow without bound, so the counters are aggregated into one row
+// per day per "kind" and bumped with an atomic $inc.
+//
+// `kind` is a string discriminator rather than a set of tables, because the
+// breakdown dimensions are all the same shape and all additive:
+//
+//   "TOTAL"             the only row carrying a meaningful `uniques` figure
+//   "page:/dashboard"   which screens get looked at
+//   "ref:google"        where visits came from
+//   "device:mobile"     coarse device class, not a fingerprint
+//
+// Privacy: no IP address, user agent or full URL is ever stored. Referrers are
+// reduced to a small set of buckets, and `VisitVisitor` keeps only a hash that
+// is salted with the day, so a visitor cannot be recognised on another day.
+// ---------------------------------------------------------------------------
+
+model VisitDaily {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  /// YYYY-MM-DD in UTC
+  day String
+  /// "TOTAL", "page:/x", "ref:google", "device:mobile", ...
+  kind String
+  count Int @default(0)
+  /// Distinct visitors for this day. Only ever set on the "TOTAL" row: summing
+  /// per-page uniques would double-count anyone who opened two pages.
+  uniques Int @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([day, kind])
+  @@index([day])
+  @@map("visit_daily")
+}
+
+/// One row per visitor per day, used only to answer "was I already counted?".
+/// Carries no address or user agent. Rows are pruned by `db:prune:visits`.
+model VisitVisitor {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  /// YYYY-MM-DD in UTC, part of the unique key so the same visitor is free to
+  /// appear again the next day.
+  day String
+  /// sha256(perDaySalt + IP + user agent), truncated. Not reversible.
+  hash String
+  createdAt DateTime @default(now())
+  /// Rows older than this are deleted; see `npm run db:prune:visits`.
+  expiresAt DateTime
+
+  @@unique([day, hash])
+  @@index([expiresAt])
+  @@map("visit_visitors")
+}
