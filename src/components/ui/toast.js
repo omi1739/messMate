@@ -93,7 +93,7 @@ function ToastViewport({ toasts, onDismiss }) {
           <div
             key={item.id}
             className={cn(
-              "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-surface p-3.5 shadow-overlay",
+              "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-surface-raised p-3.5 shadow-overlay",
               "animate-slide-up",
               variant.className,
             )}

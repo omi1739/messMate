@@ -19,7 +19,6 @@
   --color-surface-muted: var(--surface-muted);
   --color-surface-raised: var(--surface-raised);
 
-  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-faint: var(--faint);
 
@@ -63,32 +62,31 @@
   --surface-muted: oklch(0.973 0.004 106);
   --surface-raised: oklch(1 0 0);
 
-  --muted: oklch(0.545 0.014 106);
   --muted-foreground: oklch(0.505 0.014 106);
-  --faint: oklch(0.9 0.005 106);
+  --faint: oklch(0.92 0.005 106);
 
   --border: oklch(0.912 0.006 106);
-  --border-strong: oklch(0.845 0.008 106);
+  --border-strong: oklch(0.652 0.008 106);
 
-  --primary: oklch(0.53 0.116 178);
-  --primary-hover: oklch(0.47 0.115 178);
+  --primary: oklch(0.51 0.116 178);
+  --primary-hover: oklch(0.45 0.115 178);
   --primary-foreground: oklch(0.99 0.005 178);
   --primary-subtle: oklch(0.955 0.024 178);
   --primary-border: oklch(0.86 0.055 178);
 
-  --success: oklch(0.55 0.128 155);
+  --success: oklch(0.518 0.128 155);
   --success-foreground: oklch(0.99 0.005 155);
   --success-subtle: oklch(0.955 0.03 155);
 
-  --warning: oklch(0.66 0.14 68);
+  --warning: oklch(0.54 0.14 68);
   --warning-foreground: oklch(0.99 0.005 68);
   --warning-subtle: oklch(0.96 0.04 78);
 
-  --danger: oklch(0.565 0.19 22);
+  --danger: oklch(0.552 0.19 22);
   --danger-foreground: oklch(0.99 0.005 22);
   --danger-subtle: oklch(0.958 0.026 22);
 
-  --info: oklch(0.58 0.13 245);
+  --info: oklch(0.532 0.13 245);
   --info-foreground: oklch(0.99 0.005 245);
   --info-subtle: oklch(0.96 0.028 245);
 
@@ -101,14 +99,13 @@
 
   --surface: oklch(0.222 0.009 200);
   --surface-muted: oklch(0.262 0.011 200);
-  --surface-raised: oklch(0.252 0.011 200);
+  --surface-raised: oklch(0.3 0.012 200);
 
-  --muted: oklch(0.71 0.013 200);
   --muted-foreground: oklch(0.7 0.014 200);
   --faint: oklch(0.33 0.012 200);
 
   --border: oklch(0.31 0.012 200);
-  --border-strong: oklch(0.4 0.014 200);
+  --border-strong: oklch(0.514 0.014 200);
 
   --primary: oklch(0.72 0.13 178);
   --primary-hover: oklch(0.78 0.135 178);
@@ -124,7 +121,7 @@
   --warning-foreground: oklch(0.2 0.04 70);
   --warning-subtle: oklch(0.32 0.06 70);
 
-  --danger: oklch(0.7 0.17 22);
+  --danger: oklch(0.72 0.17 22);
   --danger-foreground: oklch(0.19 0.04 20);
   --danger-subtle: oklch(0.32 0.07 22);
 

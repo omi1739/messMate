@@ -35,7 +35,7 @@ export function Dialog({ open, onClose, children, className, label }) {
         aria-label={label}
         tabIndex={-1}
         className={cn(
-          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden bg-surface shadow-overlay outline-none",
+          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden bg-surface-raised shadow-overlay outline-none",
           "animate-slide-up rounded-t-2xl sm:max-w-lg sm:animate-scale-in sm:rounded-[var(--radius-card)]",
           className,
         )}

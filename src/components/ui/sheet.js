@@ -39,7 +39,7 @@ export function Sheet({ open, onClose, side = "right", title, description, child
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          "absolute flex flex-col overflow-hidden border-border bg-surface shadow-overlay outline-none",
+          "absolute flex flex-col overflow-hidden border-border bg-surface-raised shadow-overlay outline-none",
           "animate-slide-in-right",
           positions[side] ?? positions.right,
           className,
