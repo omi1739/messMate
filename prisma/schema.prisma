@@ -1,0 +1,187 @@
+// MessMate — multi-tenant mess management
+//
+// Tenancy model: one `User` signup == one `Mess` == one isolated data set.
+// Every operational model carries `messId`; ALL queries must be scoped by it
+// (see src/lib/dal.js -> requireSession / requireMessId).
+//
+// The super admin is NOT stored here. It is configured via env credentials
+// and identified in the session by `isAdmin` only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String    @unique
+  passwordHash String
+  suspended    Boolean   @default(false)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // A user owns exactly one mess (1-1, enforced by Mess.ownerId @unique).
+  mess Mess?
+
+  @@map("users")
+}
+
+model Mess {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  currency  String   @default("BDT")
+  ownerId   String   @unique @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members     Member[]
+  meals       Meal[]
+  expenses    Expense[]
+  bills       Bill[]
+  customBills CustomBill[]
+  payments    Payment[]
+
+  @@map("messes")
+}
+
+// ---------------------------------------------------------------------------
+// Operations
+// ---------------------------------------------------------------------------
+
+/// A person living in the mess. Managed entirely by the mess owner — members
+/// never get a login.
+model Member {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  messId      String   @db.ObjectId
+  name        String
+  phone       String
+  joiningDate DateTime
+  /// ACTIVE | INACTIVE | ARCHIVED
+  status      String   @default("ACTIVE")
+  photoUrl    String?
+  /// Monthly seat rent charged to this member.
+  rent        Float    @default(0.0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mess     Mess      @relation(fields: [messId], references: [id], onDelete: Cascade)
+  meals    Meal[]
+  payments Payment[]
+
+  @@index([messId, status])
+  @@index([messId, name])
+  @@map("members")
+}
+
+/// Per-day meal counts. Values are meal *counts* (supports halves, e.g. 0.5).
+/// `date` is always normalised to UTC midnight — see src/lib/date.js.
+model Meal {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  messId    String   @db.ObjectId
+  date      DateTime
+  breakfast Float    @default(0.0)
+  lunch     Float    @default(0.0)
+  dinner    Float    @default(0.0)
+  memberId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([messId, date, memberId])
+  @@index([messId, date])
+  @@map("meals")
+}
+
+/// Bazar and other shared spending. BAZAR drives the meal rate; every other
+/// category is split evenly across active members.
+model Expense {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  messId      String   @db.ObjectId
+  date        DateTime
+  /// BAZAR | CLEANING | FURNITURE | MAINTENANCE | KITCHEN | GAS_CYLINDER | OTHER
+  category    String
+  description String
+  amount      Float
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mess Mess @relation(fields: [messId], references: [id], onDelete: Cascade)
+
+  @@index([messId, date])
+  @@index([messId, category])
+  @@map("expenses")
+}
+
+/// Fixed monthly utility charges, one row per month.
+model Bill {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  messId      String   @db.ObjectId
+  /// YYYY-MM
+  month       String
+  water       Float    @default(0.0)
+  electricity Float    @default(0.0)
+  gas         Float    @default(0.0)
+  wifi        Float    @default(0.0)
+  other       Float    @default(0.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mess Mess @relation(fields: [messId], references: [id], onDelete: Cascade)
+
+  @@unique([messId, month])
+  @@map("bills")
+}
+
+/// Ad-hoc extra charges for a month (e.g. "Deep cleaning", "Gas cylinder").
+model CustomBill {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  messId    String   @db.ObjectId
+  /// YYYY-MM
+  month     String
+  title     String
+  amount    Float
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mess Mess @relation(fields: [messId], references: [id], onDelete: Cascade)
+
+  @@index([messId, month])
+  @@map("custom_bills")
+}
+
+/// What a member has actually paid for a month, per cost head.
+model Payment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  messId      String   @db.ObjectId
+  /// YYYY-MM
+  month       String
+  rentPaid    Float    @default(0.0)
+  mealPaid    Float    @default(0.0)
+  utilityPaid Float    @default(0.0)
+  memberId    String   @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([messId, month, memberId])
+  @@index([messId, month])
+  @@map("payments")
+}
