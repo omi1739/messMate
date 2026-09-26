@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,35 +18,53 @@ function applyTheme(theme) {
   document.documentElement.style.colorScheme = dark ? "dark" : "light";
 }
 
+/*
+ * The stored preference is treated as an external store rather than copied into
+ * React state with an effect. `useSyncExternalStore` reads it during render, so
+ * the button is already correct on first paint and there is no setState-in-
+ * effect cascade.
+ */
+
+const listeners = new Set();
+
+function subscribe(onChange) {
+  listeners.add(onChange);
+  // Fires when another tab changes the preference.
+  window.addEventListener("storage", onChange);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getSnapshot() {
+  return window.localStorage.getItem(STORAGE_KEY) ?? "system";
+}
+
+function getServerSnapshot() {
+  return "system";
+}
+
+/** True only after hydration, so server and client markup match. */
+const useHydrated = () =>
+  useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
 export function ThemeToggle({ className }) {
-  const [theme, setTheme] = useState("system");
-  const [mounted, setMounted] = useState(false);
-
-  // Read the stored preference after mount; the inline script in the layout has
-  // already applied the class, so there is no flash.
-  useEffect(() => {
-    setTheme(window.localStorage.getItem(STORAGE_KEY) ?? "system");
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    applyTheme(theme);
-    window.localStorage.setItem(STORAGE_KEY, theme);
-
-    if (theme !== "system") return;
-    // Follow the OS while "system" is selected.
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, [theme, mounted]);
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const hydrated = useHydrated();
 
   function cycle() {
-    setTheme((current) => {
-      const index = OPTIONS.findIndex((option) => option.value === current);
-      return OPTIONS[(index + 1) % OPTIONS.length].value;
-    });
+    const current = getSnapshot();
+    const index = OPTIONS.findIndex((option) => option.value === current);
+    const next = OPTIONS[(index + 1) % OPTIONS.length].value;
+
+    window.localStorage.setItem(STORAGE_KEY, next);
+    applyTheme(next);
+    listeners.forEach((listener) => listener());
   }
 
   const Active = OPTIONS.find((option) => option.value === theme)?.icon ?? Monitor;
@@ -57,8 +75,8 @@ export function ThemeToggle({ className }) {
       size="icon-sm"
       onClick={cycle}
       className={className}
-      title={`Theme: ${theme}`}
-      aria-label={`Theme: ${theme}. Click to change.`}
+      title={hydrated ? `Theme: ${theme}` : "Theme"}
+      aria-label={hydrated ? `Theme: ${theme}. Click to change.` : "Change theme"}
     >
       <Active className="size-4" aria-hidden />
     </Button>

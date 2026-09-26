@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -40,6 +40,31 @@ const MOBILE_NAV = [
 ];
 
 const COLLAPSE_KEY = "messmate-nav-collapsed";
+
+/*
+ * Sidebar collapse is persisted, so it is read as an external store instead of
+ * being copied into state after mount. The server snapshot is always expanded,
+ * which is what renders first anyway.
+ */
+
+const collapseListeners = new Set();
+
+function subscribeCollapse(onChange) {
+  collapseListeners.add(onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    collapseListeners.delete(onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getCollapseSnapshot() {
+  return window.localStorage.getItem(COLLAPSE_KEY) === "1";
+}
+
+function getCollapseServerSnapshot() {
+  return false;
+}
 
 function isActive(pathname, href) {
   return href === "/dashboard" ? pathname === href : pathname.startsWith(href);
@@ -136,24 +161,30 @@ function NavFooter({ collapsed, onToggleCollapsed }) {
  */
 export function AppShell({ user, children }) {
   const pathname = usePathname();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  // The drawer is closed on navigation. Rather than syncing that with an effect,
+  // the pathname it was opened on is remembered: a different pathname means the
+  // drawer is closed, so no state has to be updated after the fact.
+  const [drawer, setDrawer] = useState({ open: false, path: pathname });
+  const drawerOpen = drawer.open && drawer.path === pathname;
 
-  // Close the drawer whenever navigation happens.
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, [pathname]);
+  const collapsed = useSyncExternalStore(
+    subscribeCollapse,
+    getCollapseSnapshot,
+    getCollapseServerSnapshot,
+  );
 
-  useEffect(() => {
-    setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === "1");
-  }, []);
+  function openDrawer() {
+    setDrawer({ open: true, path: pathname });
+  }
+
+  function closeDrawer() {
+    setDrawer({ open: false, path: pathname });
+  }
 
   function toggleCollapsed() {
-    setCollapsed((current) => {
-      const next = !current;
-      window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
-      return next;
-    });
+    const next = window.localStorage.getItem(COLLAPSE_KEY) === "1" ? "0" : "1";
+    window.localStorage.setItem(COLLAPSE_KEY, next);
+    collapseListeners.forEach((listener) => listener());
   }
 
   return (
@@ -175,8 +206,8 @@ export function AppShell({ user, children }) {
       </aside>
 
       {/* Mobile drawer */}
-      <Sheet open={drawerOpen} onClose={() => setDrawerOpen(false)} side="left" title="Menu">
-        <NavList pathname={pathname} onNavigate={() => setDrawerOpen(false)} />
+      <Sheet open={drawerOpen} onClose={closeDrawer} side="left" title="Menu">
+        <NavList pathname={pathname} onNavigate={closeDrawer} />
         <div className="border-t border-border p-2">
           <Link
             href="/settings"
@@ -200,7 +231,7 @@ export function AppShell({ user, children }) {
       <div className={cn("transition-[padding] duration-200", collapsed ? "lg:pl-16" : "lg:pl-60")}>
         <TopBar
           user={user}
-          onOpenNav={() => setDrawerOpen(true)}
+          onOpenNav={openDrawer}
         />
         <main className="mx-auto w-full max-w-[110rem] px-4 pb-24 pt-5 sm:px-6 lg:pb-10">{children}</main>
       </div>

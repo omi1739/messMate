@@ -72,7 +72,7 @@ function Hero() {
           <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground">
             Log what you spend at the bazar, what each person pays for rent, and who ate what each
             day. MessMate turns that into one monthly settlement — so nobody has to{" "}
-            <span className="text-foreground">"do the math"</span> at 11pm again.
+            <span className="text-foreground">&ldquo;do the math&rdquo;</span> at 11pm again.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -506,7 +506,7 @@ function ClosingCta() {
           Your next settlement is two minutes away
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-muted-foreground">
-          Create your mess, add the people you cook for, and see this month's numbers before you
+          Create your mess, add the people you cook for, and see this month&rsquo;s numbers before you
           close the kitchen.
         </p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

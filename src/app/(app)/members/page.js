@@ -1,6 +1,7 @@
 import { listMembers } from "@/lib/data/members";
 import { getCurrency } from "@/lib/data/mess";
 import { toDateInputValue, todayUtcMidnight } from "@/lib/date";
+import { formatMoney } from "@/lib/money";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MembersManager } from "./members-manager";
 
@@ -19,7 +20,7 @@ export default async function MembersPage() {
         <p className="mt-0.5 text-[13.5px] text-muted-foreground">
           {members.length === 0
             ? "The people you cook for. They never need an account."
-            : `${active.length} active of ${members.length} · ${formatRentTotal(totalRent, currency)} in seat rent`}
+            : `${active.length} active of ${members.length} · ${formatMoney(totalRent, { currency })} in seat rent`}
         </p>
       </header>
 
@@ -41,8 +42,4 @@ export default async function MembersPage() {
       </Card>
     </div>
   );
-}
-
-function formatRentTotal(total, currency) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(total);
 }

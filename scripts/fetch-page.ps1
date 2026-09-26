@@ -1,7 +1,36 @@
+param(
+  [Parameter(Position = 0)][string]$target = "/dashboard",
+  [Parameter(Position = 1)][string]$grep = "",
+  [Parameter(Position = 2)][ValidateSet("owner", "admin")][string]$as = "owner"
+)
+
 $ErrorActionPreference = "SilentlyContinue"
-$base = "http://localhost:3000"
-$email = "e2e-probe@test.local"
-$password = "Probe12345"
+$base = if ($env:MESSMATE_BASE) { $env:MESSMATE_BASE } else { "http://localhost:3000" }
+
+if ($as -eq "admin") {
+  # The admin password is never stored in the repo; it is read from the same
+  # .env the app itself uses. Values there may be quoted, so strip them.
+  function Read-Env {
+    param($name)
+    $line = (Get-Content "$PSScriptRoot\..\.env" | Where-Object { $_ -match "^$name=" } | Select-Object -First 1)
+    if (-not $line) { return $null }
+    return (($line -replace "^$name=", "").Trim().Trim('"').Trim("'"))
+  }
+
+  $password = Read-Env "SUPER_ADMIN_PASSWORD"
+  $email = Read-Env "SUPER_ADMIN_EMAIL"
+  if (-not $password -or -not $email) {
+    Write-Output "SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD not set in .env"
+    exit 1
+  }
+  $provider = "superadmin"
+  $callback = "$base/admin"
+} else {
+  $email = "e2e-probe@test.local"
+  $password = "Probe12345"
+  $provider = "credentials"
+  $callback = "$base/dashboard"
+}
 
 function Login {
   param($provider, $email, $password, $callbackUrl)
@@ -12,13 +41,10 @@ function Login {
   return $s
 }
 
-$target = if ($args.Count -gt 0) { $args[0] } else { "/dashboard" }
-$grep = if ($args.Count -gt 1) { $args[1] } else { "" }
-
-$s = Login "credentials" $email $password "$base/dashboard"
+$s = Login $provider $email $password $callback
 $r = Invoke-WebRequest -Uri "$base$target" -UseBasicParsing -WebSession $s -TimeoutSec 120
 
-Write-Output "GET $target -> $($r.StatusCode)  ($($r.RawContentLength) bytes)"
+Write-Output "GET $target [$as] -> $($r.StatusCode)  ($($r.RawContentLength) bytes)"
 $html = $r.Content
 
 # Strip tags so assertions read the visible text, not the markup.

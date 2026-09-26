@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --import ./scripts/register.mjs scripts/run-tests.mjs",
+    "test:isolation": "node scripts/check-isolation.mjs",
+    "test:auth": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-auth.ps1",
+    "test:routing": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-routing.ps1",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },

@@ -105,19 +105,32 @@ function StatusCycle({ member }) {
   const next = order[(order.indexOf(member.status) + 1) % order.length];
   const label = MEMBER_STATUS_LABELS[next] ?? next;
 
+  // The action takes (prevState, formData), so it cannot be handed straight to
+  // <form action> — that would pass the FormData as prevState. Going through
+  // useActionForm keeps the argument order and gives us the pending state.
+  const { state, formAction, pending } = useActionForm(setMemberStatusAction, {
+    successToast: true,
+  });
+
   return (
-    <form action={setMemberStatusAction}>
+    <form action={formAction}>
       <input type="hidden" name="memberId" value={member.id} />
       <input type="hidden" name="status" value={next} />
       <Button
         type="submit"
         variant="ghost"
         size="sm"
+        loading={pending}
         className="text-[12px] text-muted-foreground"
         title={`Mark ${member.name} as ${label.toLowerCase()}`}
       >
         {label}
       </Button>
+      {state?.error ? (
+        <span role="alert" className="sr-only">
+          {state.error}
+        </span>
+      ) : null}
     </form>
   );
 }

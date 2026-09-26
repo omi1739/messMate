@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { MEMBER_STATUS_LABELS, MEMBER_STATUS_TONE } from "@/lib/constants";
+import { MEMBER_STATUS_LABELS } from "@/lib/constants";
 import { formatNumber } from "@/lib/money";
 
 const MEALS = [
@@ -35,14 +35,9 @@ const total = (cell) => (cell?.b ?? 0) + (cell?.l ?? 0) + (cell?.d ?? 0);
  * Values are held in halves, so a cell of 0.5 is legitimate and is rendered as
  * such rather than rounded away.
  */
-export function MealGrid({ month, members, days, cells, currency }) {
+export function MealGrid({ members, days, cells }) {
   const [editing, setEditing] = useState(null); // { member, dayKey }
   const [filling, setFilling] = useState(null); // dayKey
-
-  const table = useMemo(
-    () => ({ days, members, cells }),
-    [days, members, cells],
-  );
 
   const dayTotals = useMemo(() => {
     const out = {};

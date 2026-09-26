@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarDays,
   CheckCircle2,
   Circle,
   Coins,
@@ -13,7 +12,7 @@ import {
 } from "lucide-react";
 import { getDashboardStats } from "@/lib/data/dashboard";
 import { getCurrency } from "@/lib/data/mess";
-import { currentMonthKey, isMonthKey, monthLabel, shiftMonth, formatDateLong } from "@/lib/date";
+import { currentMonthKey, isMonthKey, monthLabel, formatDateLong } from "@/lib/date";
 import { formatMoney, formatMoneyCompact, formatNumber, round2 } from "@/lib/money";
 import { buttonClass } from "@/components/ui/button-classes";
 import { Card, CardContent, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
@@ -29,7 +28,7 @@ export default async function DashboardPage({ searchParams }) {
   const month = isMonthKey(params?.month) ? params.month : currentMonthKey();
 
   const [stats, currency] = await Promise.all([getDashboardStats(month), getCurrency()]);
-  const { settlement, trend, recentExpenses, today, collectionRate, memberCount, setup } = stats;
+  const { settlement, trend, recentExpenses, today, collectionRate, setup } = stats;
   const { totals } = settlement;
 
   const money = (value) => formatMoney(value, { currency });

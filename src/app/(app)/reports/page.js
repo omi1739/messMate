@@ -1,17 +1,15 @@
 import {
   currentMonthKey,
   isMonthKey,
-  monthLabel,
   monthLabelWithYear,
 } from "@/lib/date";
 import { getSettlement } from "@/lib/data/settlement";
 import { getMessProfile } from "@/lib/data/mess";
 import { getCurrentUser } from "@/lib/dal";
 import { sortRowsForReport } from "@/lib/settlement";
-import { formatMoney, formatNumber, round2 } from "@/lib/money";
+import { formatMoney, formatNumber, sumBy } from "@/lib/money";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button-classes";
 import { cn } from "@/lib/utils";
 import { MonthNav } from "../month-nav";
@@ -35,6 +33,19 @@ export default async function ReportsPage({ searchParams }) {
   const { totals } = settlement;
   const rows = sortRowsForReport(settlement.rows);
   const money = (value) => formatMoney(value, { currency });
+
+  // Every footer cell is summed from the printed rows, not recomputed from the
+  // inputs. The inputs are rounded per row, so a derived footer can end up a
+  // cent away from the column it is supposed to total.
+  const columnTotals = {
+    meals: sumBy(rows, (row) => row.meals.total),
+    mealCost: sumBy(rows, (row) => row.mealCost),
+    rent: sumBy(rows, (row) => row.rent),
+    utilities: sumBy(rows, (row) => row.utilities),
+    other: sumBy(rows, (row) => row.otherShare),
+    total: sumBy(rows, (row) => row.totalBill),
+    paid: sumBy(rows, (row) => row.paidTotal),
+  };
 
   if (settlement.rows.length === 0) {
     return (
@@ -175,13 +186,13 @@ export default async function ReportsPage({ searchParams }) {
               <tfoot>
                 <tr className="border-t-2 border-border text-[12.5px] font-semibold">
                   <td className="py-2">Total</td>
-                  <Td numeric>{formatNumber(totals.totalMeals, 1)}</Td>
-                  <Td numeric>{money(round2(totals.mealRate * totals.totalMeals))}</Td>
-                  <Td numeric>{money(totals.seatRentTotal)}</Td>
-                  <Td numeric>{money(totals.utilityTotal)}</Td>
-                  <Td numeric>{money(totals.otherSharedTotal)}</Td>
-                  <Td numeric>{money(totals.grandTotal)}</Td>
-                  <Td numeric>{money(totals.paidTotal)}</Td>
+                  <Td numeric>{formatNumber(columnTotals.meals, 1)}</Td>
+                  <Td numeric>{money(columnTotals.mealCost)}</Td>
+                  <Td numeric>{money(columnTotals.rent)}</Td>
+                  <Td numeric>{money(columnTotals.utilities)}</Td>
+                  <Td numeric>{money(columnTotals.other)}</Td>
+                  <Td numeric>{money(columnTotals.total)}</Td>
+                  <Td numeric>{money(columnTotals.paid)}</Td>
                   <Td numeric className="text-danger">
                     {money(totals.outstanding)}
                   </Td>

@@ -41,7 +41,14 @@ export default async function MealsPage({ searchParams }) {
     weekday: weekdayShort(day.date),
   }));
 
-  const loggedDays = grid.days.filter((day) => !day.isFuture && day.key in (cells[grid.members[0]?.id] ?? {})).length;
+  // A day counts as logged when anybody ate. Checking a single member would
+  // undercount, since members join and leave part-way through the month.
+  const loggedDays = grid.days.filter(
+    (day) =>
+      !day.isFuture &&
+      grid.members.some((member) => (cells[member.id]?.[day.key]?.total ?? 0) > 0),
+  ).length;
+  const elapsedDays = grid.days.filter((day) => !day.isFuture).length;
 
   return (
     <div className="space-y-5">
@@ -74,14 +81,13 @@ export default async function MealsPage({ searchParams }) {
           hint={`${settlement.totals.activeMembers} active members`}
         />
         <StatCard
-          label="Average per member"
-          value={formatNumber(
-            settlement.totals.activeMembers > 0
-              ? settlement.totals.totalMeals / settlement.totals.activeMembers
-              : 0,
-            1,
-          )}
-          hint="meals this month"
+          label="Days logged"
+          value={loggedDays}
+          hint={
+            elapsedDays > 0
+              ? `of ${elapsedDays} elapsed · ${elapsedDays - loggedDays} still blank`
+              : "no days elapsed yet"
+          }
         />
       </section>
 
@@ -95,7 +101,6 @@ export default async function MealsPage({ searchParams }) {
         </CardHeader>
         <CardContent>
           <MealGrid
-            month={month}
             members={grid.members.map((member) => ({
               id: member.id,
               name: member.name,
@@ -103,7 +108,6 @@ export default async function MealsPage({ searchParams }) {
             }))}
             days={days}
             cells={cells}
-            currency={currency}
           />
         </CardContent>
       </Card>

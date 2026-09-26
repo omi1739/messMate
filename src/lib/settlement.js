@@ -153,8 +153,6 @@ export function computeSettlement({
   const expenseTotal = round2(bazarTotal + otherSharedTotal);
   const grandTotal = round2(mealRate * totalMeals + seatRentTotal + utilityTotal + otherSharedTotal);
 
-  const totalCollected = round2(utilityTotal + bazarTotal + seatRentTotal + otherSharedTotal);
-
   return {
     month,
     hasData: members.length > 0 || expenses.length > 0 || utilityTotal > 0,

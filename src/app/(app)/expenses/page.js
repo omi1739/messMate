@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getMealGrid } from "@/lib/data/meals";
 import { getSettlement } from "@/lib/data/settlement";
 import { getCurrency } from "@/lib/data/mess";
 import { listExpenses } from "@/lib/data/expenses";

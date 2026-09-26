@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionForm, SubmitButton, ActionMessage } from "@/components/ui/form";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { updateProfileAction, changePasswordAction, logoutAction } from "@/app/actions/auth";
 import { updateMessSettingsAction } from "@/app/actions/mess";
