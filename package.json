@@ -8,11 +8,22 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --import ./scripts/register.mjs scripts/run-tests.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "check:shots": "node scripts/check-shots.mjs",
+    "shoot:demo": "node --import ./scripts/register.mjs scripts/shoot-demo.mjs",
     "test:isolation": "node scripts/check-isolation.mjs",
     "test:auth": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-auth.ps1",
     "test:routing": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-routing.ps1",
+    "test:integration": "npm run db:seed:e2e && npm run db:seed:demo && npm run test:isolation && npm run test:auth && npm run test:routing",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed:e2e": "node --import ./scripts/register.mjs scripts/seed-probe.mjs",
+    "db:seed:demo": "node --import ./scripts/register.mjs scripts/seed-demo.mjs",
+    "db:clean:e2e": "node --import ./scripts/register.mjs scripts/clean-e2e.mjs",
+    "db:check": "node --import ./scripts/register.mjs scripts/check-integrity.mjs",
+    "db:seed:visits": "node --import ./scripts/register.mjs scripts/visits.mjs seed 30",
+    "db:reset:visits": "node --import ./scripts/register.mjs scripts/visits.mjs reset",
+    "db:prune:visits": "node --import ./scripts/register.mjs scripts/visits.mjs prune"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
