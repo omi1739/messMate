@@ -1,37 +1,22 @@
 import { z } from "zod";
 import { MONTH_KEY_PATTERN, parseDateInput } from "@/lib/date";
+import {
+  CURRENCIES,
+  EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORY_LABELS,
+  MEMBER_STATUSES,
+  MEMBER_STATUS_LABELS,
+  NON_SHARED_EQUALLY,
+} from "@/lib/constants";
 
-export const MEMBER_STATUSES = ["ACTIVE", "INACTIVE", "ARCHIVED"];
-
-export const EXPENSE_CATEGORIES = [
-  "BAZAR",
-  "CLEANING",
-  "KITCHEN",
-  "GAS_CYLINDER",
-  "MAINTENANCE",
-  "FURNITURE",
-  "OTHER",
-];
-
-export const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR", "PKR", "AED"];
-
-/** Categories that get split evenly across active members (everything except bazar). */
-export const NON_SHARED_EQUALLY = "BAZAR";
-
-export const EXPENSE_CATEGORY_LABELS = {
-  BAZAR: "Bazar / Groceries",
-  CLEANING: "Cleaning",
-  KITCHEN: "Kitchen",
-  GAS_CYLINDER: "Gas cylinder",
-  MAINTENANCE: "Maintenance",
-  FURNITURE: "Furniture",
-  OTHER: "Other",
-};
-
-export const MEMBER_STATUS_LABELS = {
-  ACTIVE: "Active",
-  INACTIVE: "Inactive",
-  ARCHIVED: "Archived",
+// Re-exported so server code has a single import for validation + labels.
+export {
+  CURRENCIES,
+  EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORY_LABELS,
+  MEMBER_STATUSES,
+  MEMBER_STATUS_LABELS,
+  NON_SHARED_EQUALLY,
 };
 
 // ---------------------------------------------------------------------------

@@ -207,7 +207,7 @@ export default async function DashboardPage({ searchParams }) {
                 {recentExpenses.map((expense) => (
                   <li key={expense.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium">{expense.title}</p>
+                      <p className="truncate text-[13px] font-medium">{expense.description}</p>
                       <p className="truncate text-[11.5px] text-muted-foreground">
                         {expense.category.toLowerCase().replace(/_/g, " ")} · {formatDateLong(expense.date)}
                       </p>
