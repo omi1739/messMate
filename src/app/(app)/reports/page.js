@@ -154,7 +154,7 @@ export default async function ReportsPage({ searchParams }) {
                     <td className="py-2 pr-2 font-medium">
                       <span>{row.member.name}</span>
                       {!row.isActive ? (
-                        <span className="ml-1.5 text-[10.5px] font-normal text-muted-foreground">
+                        <span className="ml-1.5 text-[11.5px] font-normal text-muted-foreground">
                           {row.member.status.toLowerCase()}
                         </span>
                       ) : null}

@@ -277,7 +277,7 @@ export function QuickMealLog({ members, days, cells, todayKey }) {
                   <th scope="row" className="px-3 py-1.5 text-left font-medium">
                     <span className="block max-w-[10rem] truncate">{member.name}</span>
                     {member.status !== "ACTIVE" ? (
-                      <span className="text-[10.5px] font-normal text-muted-foreground">
+                      <span className="text-[11.5px] font-normal text-muted-foreground">
                         {MEMBER_STATUS_LABELS[member.status]}
                       </span>
                     ) : null}
@@ -387,7 +387,7 @@ function ChipSwatch({ value }) {
     <span
       aria-hidden
       className={cn(
-        "inline-grid size-4 place-items-center rounded-[4px] border text-[9px] font-semibold",
+        "inline-grid size-4 place-items-center rounded-[4px] border text-[11px] font-semibold",
         value === 1 && "border-primary bg-primary text-primary-foreground",
         value === 0.5 && "border-primary/55 bg-primary-subtle text-primary",
         value === 0 && "border-border bg-surface-muted",

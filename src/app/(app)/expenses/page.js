@@ -110,11 +110,11 @@ export default async function ExpensesPage({ searchParams }) {
                       <span className="flex items-center gap-2 font-medium">
                         {EXPENSE_CATEGORY_LABELS[row.category] ?? row.category}
                         {row.category === NON_SHARED_EQUALLY ? (
-                          <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-[10.5px] font-medium text-primary">
+                          <span className="rounded-full bg-primary-subtle px-1.5 py-0.5 text-[11.5px] font-medium text-primary">
                             meal rate
                           </span>
                         ) : (
-                          <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10.5px] font-medium text-muted-foreground">
+                          <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[11.5px] font-medium text-muted-foreground">
                             split evenly
                           </span>
                         )}

@@ -15,7 +15,7 @@ export function Tag({ tone = "default", children, className }) {
   return (
     <span
       className={cn(
-        "inline-block rounded-full px-1.5 py-0.5 align-middle text-[10px] font-semibold tracking-wide uppercase",
+        "inline-block rounded-full px-1.5 py-0.5 align-middle text-[11px] font-semibold tracking-wide uppercase",
         tones[tone],
         className,
       )}

@@ -118,7 +118,7 @@ export function MealGrid({ members, days, cells }) {
                     >
                       <span className="block max-w-[9rem] truncate">{member.name}</span>
                       {member.status !== "ACTIVE" ? (
-                        <span className="text-[10.5px] font-normal text-muted-foreground">
+                        <span className="text-[11.5px] font-normal text-muted-foreground">
                           {MEMBER_STATUS_LABELS[member.status]}
                         </span>
                       ) : null}
