@@ -59,10 +59,6 @@ export function DialogTitle({ className, children }) {
   return <h2 className={cn("text-base font-semibold tracking-tight", className)}>{children}</h2>;
 }
 
-export function DialogDescription({ className, children }) {
-  return <p className={cn("mt-1 text-[13px] text-muted-foreground", className)}>{children}</p>;
-}
-
 export function DialogBody({ className, children }) {
   return <div className={cn("min-h-0 flex-1 overflow-y-auto px-5 py-4", className)}>{children}</div>;
 }

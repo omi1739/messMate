@@ -50,6 +50,25 @@ export default async function DashboardPage({ searchParams }) {
         <MonthNav month={month} basePath="/dashboard" />
       </header>
 
+      <nav aria-label="Common tasks" className="flex flex-wrap gap-2">
+        <Link href="/meals" className={buttonClass({ size: "sm" })}>
+          <UtensilsCrossed className="size-3.5" aria-hidden />
+          Log today&rsquo;s meals
+        </Link>
+        <Link href="/expenses" className={buttonClass({ variant: "secondary", size: "sm" })}>
+          <Receipt className="size-3.5" aria-hidden />
+          Add an expense
+        </Link>
+        <Link href="/members" className={buttonClass({ variant: "secondary", size: "sm" })}>
+          <Users className="size-3.5" aria-hidden />
+          Add a member
+        </Link>
+        <Link href="/bills" className={buttonClass({ variant: "secondary", size: "sm" })}>
+          <Wallet className="size-3.5" aria-hidden />
+          Record bills
+        </Link>
+      </nav>
+
       {isFresh ? <SetupChecklist setup={setup} /> : null}
 
       <section aria-label="This month at a glance" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -88,7 +107,7 @@ export default async function DashboardPage({ searchParams }) {
               href="/meals"
               className={buttonClass({ variant: "ghost", size: "sm" })}
             >
-              Open grid <ArrowRight className="size-3.5" aria-hidden />
+              Log meals <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </CardHeader>
           <CardContent>

@@ -10,7 +10,7 @@ import {
   todayUtcMidnight,
 } from "@/lib/date";
 import { formatMoney } from "@/lib/money";
-import { Card, CardContent, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { buttonClass } from "@/components/ui/button-classes";
 import { cn } from "@/lib/utils";
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, NON_SHARED_EQUALLY } from "@/lib/constants";
@@ -24,7 +24,9 @@ export default async function ExpensesPage({ searchParams }) {
   const month = isMonthKey(params?.month) ? params.month : currentMonthKey();
 
   const category =
-    typeof params?.category === "string" && params.category !== "ALL" ? params.category : "ALL";
+    typeof params?.category === "string" && EXPENSE_CATEGORIES.includes(params.category)
+      ? params.category
+      : "ALL";
   const query = typeof params?.q === "string" ? params.q.trim().slice(0, 60) : "";
 
   // One read for the page: the filtered list plus the whole-month totals.
@@ -37,14 +39,29 @@ export default async function ExpensesPage({ searchParams }) {
   const activeMembers = settlement.totals.activeMembers;
   const evenShare = activeMembers > 0 ? summary.other / activeMembers : 0;
 
+  // A new expense belongs to the month on screen. Defaulting to today meant
+  // that adding to a past month filed the entry outside the list you were
+  // looking at, and it simply vanished.
+  const today = toDateInputValue(todayUtcMidnight());
+  const defaultDate = month === currentMonthKey() ? today : `${month}-01`;
+
   return (
     <div className="space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Expenses</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">
-            {monthLabel(month, { short: false })} · {summary.count}{" "}
-            {summary.count === 1 ? "entry" : "entries"}
+            {monthLabel(month, { short: false })} ·{" "}
+            {summary.hasFilter ? (
+              <>
+                {summary.count} of {summary.monthCount}{" "}
+                {summary.monthCount === 1 ? "entry" : "entries"}
+              </>
+            ) : (
+              <>
+                {summary.count} {summary.count === 1 ? "entry" : "entries"}
+              </>
+            )}
           </p>
         </div>
         <MonthNav month={month} basePath="/expenses" />
@@ -76,6 +93,11 @@ export default async function ExpensesPage({ searchParams }) {
         <Card>
           <CardHeader>
             <CardTitle>Where it went</CardTitle>
+            {summary.hasFilter ? (
+              <CardDescription>
+                The whole month, so this does not change with the filter below.
+              </CardDescription>
+            ) : null}
           </CardHeader>
           <CardContent>
             <ul className="space-y-2.5">
@@ -144,9 +166,10 @@ export default async function ExpensesPage({ searchParams }) {
             <ExpensesManager
               expenses={expenses}
               currency={currency}
-              defaultDate={toDateInputValue(todayUtcMidnight())}
+              defaultDate={defaultDate}
               initialCategory={category}
               query={query}
+              month={month}
             />
           </div>
         </CardContent>

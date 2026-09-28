@@ -108,12 +108,12 @@ function StatusCycle({ member }) {
   // The action takes (prevState, formData), so it cannot be handed straight to
   // <form action> — that would pass the FormData as prevState. Going through
   // useActionForm keeps the argument order and gives us the pending state.
-  const { state, formAction, pending } = useActionForm(setMemberStatusAction, {
+  const { state, formAction, pending, formRef } = useActionForm(setMemberStatusAction, {
     successToast: true,
   });
 
   return (
-    <form action={formAction}>
+    <form ref={formRef} action={formAction}>
       <input type="hidden" name="memberId" value={member.id} />
       <input type="hidden" name="status" value={next} />
       <Button
@@ -137,20 +137,16 @@ function StatusCycle({ member }) {
 
 function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
   const isNew = !member;
-  const { state, formAction, pending } = useActionForm(
+  const { state, formAction, pending, formRef } = useActionForm(
     isNew ? createMemberAction : updateMemberAction,
+    // Close only when the action actually succeeded, so validation errors stay
+    // on screen next to the fields that caused them.
+    { onSuccess: onClose },
   );
-
-  // Close only when the action actually succeeded, so validation errors stay
-  // on screen next to the fields that caused them.
-  async function handleSubmit(formData) {
-    const result = await formAction(formData);
-    if (result?.ok) onClose();
-  }
 
   return (
     <Dialog open onClose={onClose} label={isNew ? "Add member" : `Edit ${member.name}`}>
-      <form action={handleSubmit} noValidate>
+      <form ref={formRef} action={formAction} noValidate>
         <DialogHeader>
           <DialogTitle>{isNew ? "Add member" : `Edit ${member.name}`}</DialogTitle>
           <DialogCloseIcon onClick={onClose} />
@@ -161,13 +157,14 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
             {!isNew ? <input type="hidden" name="memberId" value={member.id} /> : null}
 
             <Field label="Name" htmlFor="name" error={state.errors?.name} required>
-              {({ id, invalid }) => (
+              {({ id, invalid, describedBy }) => (
                 <Input
                   id={id}
                   name="name"
                   defaultValue={member?.name ?? ""}
                   placeholder="Member name"
                   invalid={invalid}
+                  aria-describedby={describedBy}
                   maxLength={60}
                   required
                   autoFocus
@@ -176,7 +173,7 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
             </Field>
 
             <Field label="Phone" htmlFor="phone" error={state.errors?.phone} required>
-              {({ id, invalid }) => (
+              {({ id, invalid, describedBy }) => (
                 <Input
                   id={id}
                   name="phone"
@@ -185,6 +182,7 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
                   defaultValue={member?.phone ?? ""}
                   placeholder="01712-345678"
                   invalid={invalid}
+                  aria-describedby={describedBy}
                   maxLength={20}
                   required
                 />
@@ -198,7 +196,7 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
                 error={state.errors?.rent}
                 hint={`Charged while the member is active (${currency})`}
               >
-                {({ id, invalid }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="rent"
@@ -208,6 +206,7 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
                     step="0.01"
                     defaultValue={member?.rent ?? 0}
                     invalid={invalid}
+                    aria-describedby={describedBy}
                   />
                 )}
               </Field>
@@ -218,13 +217,14 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
                 error={state.errors?.joiningDate}
                 required
               >
-                {({ id, invalid }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="joiningDate"
                     type="date"
                     defaultValue={member ? toDateInput(member.joiningDate) : defaultJoiningDate}
                     invalid={invalid}
+                    aria-describedby={describedBy}
                     required
                   />
                 )}
@@ -237,8 +237,14 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
               error={state.errors?.status}
               hint={MEMBER_STATUS_HINTS[member?.status ?? "ACTIVE"]}
             >
-              {({ id }) => (
-                <Select id={id} name="status" defaultValue={member?.status ?? "ACTIVE"}>
+              {({ id, invalid, describedBy }) => (
+                <Select
+                  id={id}
+                  name="status"
+                  defaultValue={member?.status ?? "ACTIVE"}
+                  invalid={invalid}
+                  aria-describedby={describedBy}
+                >
                   {MEMBER_STATUSES.map((value) => (
                     <option key={value} value={value}>
                       {MEMBER_STATUS_LABELS[value]}
@@ -249,13 +255,15 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
             </Field>
 
             <Field label="Notes" htmlFor="notes" error={state.errors?.notes}>
-              {({ id }) => (
+              {({ id, invalid, describedBy }) => (
                 <Textarea
                   id={id}
                   name="notes"
                   rows={2}
                   defaultValue={member?.notes ?? ""}
                   placeholder="Optional — anything worth remembering"
+                  invalid={invalid}
+                  aria-describedby={describedBy}
                   maxLength={280}
                 />
               )}
@@ -268,16 +276,17 @@ function MemberDialog({ member, currency, defaultJoiningDate, onClose }) {
         <DialogFooter>
           {!isNew ? (
             <DeleteConfirm
-              className="mr-auto"
               title={`Delete ${member.name}?`}
               description="This removes the member along with their meal history and payments. Archiving keeps the history and stops the charges — prefer that unless you are clearing out a test mess."
               confirmLabel="Delete permanently"
-              hidden={{ memberId: member.id }}
               onConfirm={async () => {
                 const formData = new FormData();
                 formData.set("memberId", member.id);
                 const result = await deleteMemberAction({ ok: false }, formData);
                 if (result?.ok) onClose();
+                // Returned, not just consumed: DeleteConfirm reads this to decide
+                // whether to toast, so swallowing it hid every failure.
+                return result;
               }}
               trigger={(open) => (
                 <Button type="button" variant="ghost" size="sm" onClick={open} className="text-danger hover:bg-danger-subtle">

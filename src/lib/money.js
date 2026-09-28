@@ -23,9 +23,20 @@ const CURRENCY_SYMBOLS = {
 export function round2(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
-  // The EPSILON nudge stops values like 1.005 from rounding down due to
-  // binary representation (1.00499999999999989...).
-  return Math.round((n + Number.EPSILON) * 100) / 100;
+
+  // Symmetric, with ties going away from zero. `Math.round` is not symmetric: it
+  // rounds -100.5 to -100, so the old expression turned +1.005 into 1.01 and
+  // -1.005 into -1.00. The same magnitude then formatted two different ways
+  // depending on which side of the sign it sat, and a refund could disagree
+  // with the charge it was refunding. The sign is taken off first and put back
+  // afterwards. The EPSILON nudge still rescues 1.005, which is stored as
+  // 1.00499999999999989...
+  const sign = n < 0 ? -1 : 1;
+  const cents = Math.round((Math.abs(n) + Number.EPSILON) * 100) / 100;
+
+  // `|| 0` also folds -0 to 0, so a tiny negative amount cannot leak "-0" into
+  // `Object.is`, a string, or a sign comparison further downstream.
+  return sign * cents || 0;
 }
 
 /** Rounded sum of a list, optionally reading the number off each item. */
@@ -34,9 +45,17 @@ export function sumBy(list, pick = (x) => x) {
   return round2(list.reduce((total, item) => total + (Number(pick(item)) || 0), 0));
 }
 
-export function currencySymbol(code) {
+// Not exported: every caller goes through `formatMoney` / `formatMoneyCompact`,
+// which is the only place a symbol belongs next to a formatted amount.
+function currencySymbol(code) {
   if (!code) return CURRENCY_SYMBOLS.BDT;
-  return CURRENCY_SYMBOLS[code] ?? code;
+  // Own-property check, not just a lookup. The symbol table is a plain object
+  // literal, so `currencySymbol("constructor")` used to return Object's
+  // constructor and `currencySymbol("toString")` a function, either of which
+  // then got interpolated straight into a rendered amount. `code` comes from a
+  // per-mess settings field, so an unexpected value here is a formatting bug
+  // rather than a security boundary — an unknown code still echoes itself.
+  return Object.hasOwn(CURRENCY_SYMBOLS, code) ? CURRENCY_SYMBOLS[code] : code;
 }
 
 export function formatNumber(value, fractionDigits = 0) {

@@ -8,9 +8,13 @@
 
 import { fieldErrors } from "@/lib/validators";
 
-/** Consistent result shape for `useActionState`. */
+/**
+ * Consistent result shape for `useActionState`. Both helpers return the same
+ * keys so a consumer can read `.message` and `.error` without first checking
+ * which helper produced the value.
+ */
 export function fail(message, errors) {
-  return { ok: false, error: message ?? null, errors: errors ?? null };
+  return { ok: false, message: null, error: message ?? null, errors: errors ?? null };
 }
 
 export function succeed(message) {
@@ -23,11 +27,6 @@ export function formString(formData, key) {
 }
 
 /** Read a checkbox out of FormData (absent === false). */
-export function formBool(formData, key) {
-  const value = formData?.get(key);
-  return value === "on" || value === "true" || value === "1";
-}
-
 /**
  * Keeps post-sign-in redirects on this origin. Without this, `?next=` in the
  * login form would be an open redirect straight off-site.

@@ -15,9 +15,10 @@ import { useToast } from "@/components/ui/toast";
 /**
  * Two-step confirmation for destructive actions.
  *
- * `onConfirm` does the work and should resolve even when the server rejects the
- * request, so the dialog closes either way and the toast explains the outcome.
- * `hidden` is forwarded to the trigger's pending state label when provided.
+ * `onConfirm` must **return** the action result. It is the only thing that says
+ * whether the work succeeded: when it resolves to `undefined` the dialog still
+ * closes but no toast is shown at all, so a rejected delete (a self-delete
+ * guard, a database error, a dropped connection) looks exactly like a success.
  */
 export function DeleteConfirm({
   title,
@@ -39,8 +40,11 @@ export function DeleteConfirm({
 
       if (result?.ok) {
         if (result.message) toast({ title: result.message, variant: "success" });
-      } else if (result?.error) {
-        toast({ title: result.error, variant: "danger" });
+      } else {
+        toast({
+          title: result?.error ?? "That did not work. Please try again.",
+          variant: "danger",
+        });
       }
     } catch {
       setOpen(false);

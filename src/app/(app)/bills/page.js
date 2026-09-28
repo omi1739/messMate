@@ -61,7 +61,12 @@ export default async function BillsPage({ searchParams }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <UtilityBillForm month={month} bill={bills.bill} currency={currency} />
+          <UtilityBillForm
+            month={month}
+            bill={bills.bill}
+            hasBill={bills.hasBill}
+            currency={currency}
+          />
         </CardContent>
       </Card>
 

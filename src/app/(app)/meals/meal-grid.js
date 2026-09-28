@@ -213,16 +213,11 @@ export function MealGrid({ members, days, cells }) {
 }
 
 function MealCellDialog({ member, dayKey, cell, onClose }) {
-  const { state, formAction, pending } = useActionForm(setMealAction);
-
-  async function handleSubmit(formData) {
-    const result = await formAction(formData);
-    if (result?.ok) onClose();
-  }
+  const { state, formAction, pending, formRef } = useActionForm(setMealAction, { onSuccess: onClose });
 
   return (
     <Dialog open onClose={onClose} label={`Meals for ${member.name}`}>
-      <form action={handleSubmit} noValidate>
+      <form ref={formRef} action={formAction} noValidate>
         <DialogHeader>
           <div>
             <DialogTitle>{member.name}</DialogTitle>
@@ -244,7 +239,7 @@ function MealCellDialog({ member, dayKey, cell, onClose }) {
                   htmlFor={meal.key}
                   error={state.errors?.[meal.key]}
                 >
-                  {({ id }) => (
+                  {({ id, invalid, describedBy }) => (
                     <Input
                       id={id}
                       name={meal.key}
@@ -255,6 +250,8 @@ function MealCellDialog({ member, dayKey, cell, onClose }) {
                       step="0.5"
                       defaultValue={cell?.[meal.key[0]] ?? 0}
                       className="text-center"
+                      invalid={invalid}
+                      aria-describedby={describedBy}
                     />
                   )}
                 </Field>
@@ -299,17 +296,12 @@ function MealCellDialog({ member, dayKey, cell, onClose }) {
 }
 
 function FillDayDialog({ dayKey, days, memberCount, onClose }) {
-  const { state, formAction, pending } = useActionForm(fillDayForAllAction);
+  const { state, formAction, pending, formRef } = useActionForm(fillDayForAllAction, { onSuccess: onClose });
   const [selected, setSelected] = useState(dayKey);
-
-  async function handleSubmit(formData) {
-    const result = await formAction(formData);
-    if (result?.ok) onClose();
-  }
 
   return (
     <Dialog open onClose={onClose} label="Fill a whole day" className="sm:max-w-md">
-      <form action={handleSubmit} noValidate>
+      <form ref={formRef} action={formAction} noValidate>
         <DialogHeader>
           <div>
             <DialogTitle>Fill a whole day</DialogTitle>

@@ -47,17 +47,30 @@ export async function signupAction(_prevState, formData) {
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-  // One signup = one mess. The nested create keeps them in a single insert, so a
-  // user can never end up without a mess or own two.
-  await db.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      mess: { create: { name: messName } },
-    },
-    select: { id: true },
-  });
+  // One signup = one mess, created together so a user cannot own two. The
+  // `findUnique` above is only a nicer error message, not a guarantee: two
+  // concurrent signups can both pass it, and on MongoDB the write is not
+  // transactional. The unique index is the real guarantee, so its violation is
+  // caught and reported like any other validation failure instead of becoming a
+  // 500 that wipes the form.
+  try {
+    await db.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        mess: { create: { name: messName } },
+      },
+      select: { id: true },
+    });
+  } catch (error) {
+    if (error?.code === "P2002") {
+      return fail("That email is already registered.", {
+        email: "An account with this email already exists. Try signing in instead.",
+      });
+    }
+    throw error;
+  }
 
   await signIn("credentials", { email, password, redirectTo: "/dashboard" });
   return succeed("Welcome to MessMate!");
@@ -182,6 +195,9 @@ export async function updateProfileAction(_prevState, formData) {
   }
 
   await db.user.update({ where: { id: user.id }, data: { name } });
-  revalidatePath("/settings");
+  // The sidebar renders the name, and it lives in the shared (app) layout rather
+  // than on /settings, so revalidating only the settings page left every other
+  // route — and the shell around this one — showing the old name.
+  revalidatePath("/", "layout");
   return succeed("Profile updated.");
 }

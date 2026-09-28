@@ -31,11 +31,18 @@ const NAV = [
   { name: "Report", href: "/reports", icon: Shield },
 ];
 
+/*
+ * Bills used to be desktop-only: the mobile tab bar had room for five and
+ * quietly dropped it, so the one page that people open once a month was the one
+ * they could not reach from the bottom of the screen. Six fits, and Report is
+ * the least daily of the set.
+ */
 const MOBILE_NAV = [
   { name: "Home", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/members", icon: Users },
   { name: "Meals", href: "/meals", icon: CalendarDays },
   { name: "Expenses", href: "/expenses", icon: Receipt },
+  { name: "Bills", href: "/bills", icon: Wallet },
   { name: "Report", href: "/reports", icon: Shield },
 ];
 
@@ -264,7 +271,7 @@ function MobileTabBar({ pathname }) {
   return (
     <nav
       aria-label="Main"
-      className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface/95 backdrop-blur-md lg:hidden"
+      className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-surface/95 backdrop-blur-md lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {MOBILE_NAV.map((item) => {

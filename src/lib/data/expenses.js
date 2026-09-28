@@ -1,22 +1,33 @@
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { requireMessId } from "@/lib/dal";
-import { currentMonthKey, isMonthKey, monthDateRange, monthKeyFromDate, todayUtcMidnight } from "@/lib/date";
+import { currentMonthKey, isMonthKey, monthDateRange } from "@/lib/date";
 import { sumBy } from "@/lib/money";
+import { EXPENSE_CATEGORIES } from "@/lib/constants";
 
 /**
  * Expenses for a month with per-category breakdown. `query` and `category` are
  * optional filters applied in the database.
+ *
+ * The `summary` is deliberately **month-wide, not filtered** — the three StatCards
+ * answer "what did this month cost", which a category filter must not change. The
+ * page therefore gets both counts and is expected to label them.
  */
 export const listExpenses = cache(async ({ month, category, query } = {}) => {
   const messId = await requireMessId();
   const monthKey = isMonthKey(month) ? month : currentMonthKey();
   const range = monthDateRange(monthKey);
 
+  // An unrecognised category would otherwise reach the database and return an
+  // empty list with no error, while the filter control rendered blank because no
+  // <option> matched.
+  const categoryFilter =
+    typeof category === "string" && EXPENSE_CATEGORIES.includes(category) ? category : "ALL";
+
   const where = {
     messId,
     date: { gte: range.gte, lt: range.lt },
-    ...(category && category !== "ALL" ? { category } : {}),
+    ...(categoryFilter !== "ALL" ? { category: categoryFilter } : {}),
     ...(query
       ? {
           OR: [
@@ -32,6 +43,9 @@ export const listExpenses = cache(async ({ month, category, query } = {}) => {
     db.expense.findMany({
       where: { messId, date: { gte: range.gte, lt: range.lt } },
       select: { amount: true, category: true },
+      // Deterministic order, so categories with equal totals cannot swap places
+      // between requests once the page sorts them by amount.
+      orderBy: { category: "asc" },
     }),
   ]);
 
@@ -40,12 +54,21 @@ export const listExpenses = cache(async ({ month, category, query } = {}) => {
     byCategory[expense.category] = (byCategory[expense.category] ?? 0) + expense.amount;
   }
 
+  // Hoisted: this was being re-reduced twice per category inside the map below.
+  const monthTotal = sumBy(allForTotals, (expense) => expense.amount);
+  const hasFilter = categoryFilter !== "ALL" || Boolean(query);
+
   return {
     month: monthKey,
+    category: categoryFilter,
     expenses,
     summary: {
-      count: allForTotals.length,
-      total: sumBy(allForTotals, (expense) => expense.amount),
+      /** Rows in the (possibly filtered) list on screen. */
+      count: expenses.length,
+      /** Rows in the month, filters ignored. */
+      monthCount: allForTotals.length,
+      hasFilter,
+      total: monthTotal,
       bazar: sumBy(
         allForTotals.filter((expense) => expense.category === "BAZAR"),
         (expense) => expense.amount,
@@ -57,9 +80,7 @@ export const listExpenses = cache(async ({ month, category, query } = {}) => {
       byCategory: Object.entries(byCategory).map(([key, amount]) => ({
         category: key,
         amount,
-        share: sumBy(allForTotals, (e) => e.amount) > 0
-          ? (amount / sumBy(allForTotals, (e) => e.amount)) * 100
-          : 0,
+        share: monthTotal > 0 ? (amount / monthTotal) * 100 : 0,
       })),
     },
   };
@@ -74,53 +95,3 @@ export const listRecentExpenses = cache(async (limit = 6) => {
     take: limit,
   });
 });
-
-/** Highest single-day bazar spend in the current month, for the dashboard. */
-export const getTopBazarDay = cache(async (month) => {
-  const messId = await requireMessId();
-  const monthKey = isMonthKey(month) ? month : currentMonthKey();
-  const range = monthDateRange(monthKey);
-
-  const expenses = await db.expense.findMany({
-    where: { messId, category: "BAZAR", date: { gte: range.gte, lt: range.lt } },
-    select: { amount: true, date: true },
-  });
-
-  const byDay = new Map();
-  for (const expense of expenses) {
-    const key = monthKeyFromDate(expense.date);
-    byDay.set(key, (byDay.get(key) ?? 0) + expense.amount);
-  }
-
-  let top = null;
-  for (const [day, amount] of byDay) {
-    if (!top || amount > top.amount) top = { day, amount };
-  }
-  return top;
-});
-
-/** Expense totals for the current month, ignoring the month picker. */
-export const getMonthExpenseTotal = cache(async (month) => {
-  const messId = await requireMessId();
-  const monthKey = isMonthKey(month) ? month : currentMonthKey();
-  const range = monthDateRange(monthKey);
-
-  const expenses = await db.expense.findMany({
-    where: { messId, date: { gte: range.gte, lt: range.lt } },
-    select: { amount: true, category: true },
-  });
-
-  return {
-    total: sumBy(expenses, (expense) => expense.amount),
-    bazar: sumBy(
-      expenses.filter((expense) => expense.category === "BAZAR"),
-      (expense) => expense.amount,
-    ),
-    other: sumBy(
-      expenses.filter((expense) => expense.category !== "BAZAR"),
-      (expense) => expense.amount,
-    ),
-  };
-});
-
-export { todayUtcMidnight };

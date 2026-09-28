@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import { signupAction } from "@/app/actions/auth";
-import { ActionMessage, SubmitButton } from "@/components/ui/form";
+import { ActionMessage, SubmitButton, useActionForm } from "@/components/ui/form";
 import { Field, Input } from "@/components/ui/input";
 
+/*
+ * Uses `useActionForm` rather than raw `useActionState`. React empties a
+ * `<form action={...}>` once the action settles, success or failure, so a bare
+ * `useActionState` wiped every field whenever validation rejected the submit —
+ * one mistyped character in an already-registered email cost the whole form. The
+ * hook hands the typed values back on failure and focuses the first field the
+ * server complained about.
+ */
 export function SignupForm() {
-  const [state, formAction, pending] = useActionState(signupAction, {
-    ok: false,
-    error: null,
-    errors: null,
-    message: null,
-  });
+  const { state, formAction, pending, formRef } = useActionForm(signupAction, { successToast: true });
+  const kept = state?.values ?? {};
 
   return (
     <div className="space-y-6">
@@ -23,7 +26,7 @@ export function SignupForm() {
         </p>
       </header>
 
-      <form action={formAction} className="space-y-4" noValidate>
+      <form ref={formRef} action={formAction} className="space-y-4" noValidate>
         <Field
           label="Mess name"
           htmlFor="messName"
@@ -31,12 +34,14 @@ export function SignupForm() {
           hint="What your household calls itself, e.g. “Green House”"
           required
         >
-          {({ id, invalid }) => (
+          {({ id, invalid, describedBy }) => (
             <Input
               id={id}
               name="messName"
               placeholder="Green House Mess"
               invalid={invalid}
+              aria-describedby={describedBy}
+              defaultValue={kept.messName ?? ""}
               maxLength={60}
               required
               autoFocus
@@ -45,13 +50,15 @@ export function SignupForm() {
         </Field>
 
         <Field label="Your name" htmlFor="name" error={state.errors?.name} required>
-          {({ id, invalid }) => (
+          {({ id, invalid, describedBy }) => (
             <Input
               id={id}
               name="name"
               placeholder="Your name"
               autoComplete="name"
               invalid={invalid}
+              aria-describedby={describedBy}
+              defaultValue={kept.name ?? ""}
               maxLength={60}
               required
             />
@@ -59,7 +66,7 @@ export function SignupForm() {
         </Field>
 
         <Field label="Email" htmlFor="email" error={state.errors?.email} required>
-          {({ id, invalid }) => (
+          {({ id, invalid, describedBy }) => (
             <Input
               id={id}
               name="email"
@@ -68,6 +75,8 @@ export function SignupForm() {
               placeholder="you@example.com"
               autoComplete="email"
               invalid={invalid}
+              aria-describedby={describedBy}
+              defaultValue={kept.email ?? ""}
               required
             />
           )}
@@ -80,7 +89,7 @@ export function SignupForm() {
           hint="At least 8 characters, including a letter and a number"
           required
         >
-          {({ id, invalid }) => (
+          {({ id, invalid, describedBy }) => (
             <Input
               id={id}
               name="password"
@@ -88,6 +97,7 @@ export function SignupForm() {
               autoComplete="new-password"
               placeholder="••••••••"
               invalid={invalid}
+              aria-describedby={describedBy}
               required
             />
           )}

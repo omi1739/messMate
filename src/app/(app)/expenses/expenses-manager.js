@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pencil, Plus, Receipt, Search, Trash2 } from "lucide-react";
 import {
   createExpenseAction,
@@ -24,15 +24,30 @@ import {
 } from "@/components/ui/dialog";
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, NON_SHARED_EQUALLY } from "@/lib/constants";
 import { formatMoney } from "@/lib/money";
-import { formatDateLong } from "@/lib/date";
+import { currentMonthKey, formatDateLong } from "@/lib/date";
 
-export function ExpensesManager({ expenses, currency, defaultDate, initialCategory, query }) {
-  const [editing, setEditing] = useState(null); // expense | "new" | null
+export function ExpensesManager({ expenses, currency, defaultDate, initialCategory, query, month }) {
+  const [editing, setEditing] = useState(null); // expense | null
+  const defaultCategory = initialCategory === "ALL" ? "BAZAR" : initialCategory;
+
+  // Dropping the search must not also drop the month and the category the user
+  // had narrowed to, so the link is rebuilt from what is on screen.
+  const clearParams = new URLSearchParams();
+  if (month !== currentMonthKey()) clearParams.set("month", month);
+  if (initialCategory !== "ALL") clearParams.set("category", initialCategory);
+  const clearSearch = clearParams.toString();
+  const clearHref = clearSearch ? `/expenses?${clearSearch}` : "/expenses";
 
   return (
     <>
+      <QuickAddExpense currency={currency} defaultDate={defaultDate} defaultCategory={defaultCategory} />
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <form method="get" className="relative">
+          {/* The month has to ride along: the form replaces the whole query
+              string, so without this a search on a past month silently jumped
+              the user back to the current one. */}
+          {month !== currentMonthKey() ? <input type="hidden" name="month" value={month} /> : null}
           {initialCategory !== "ALL" ? <input type="hidden" name="category" value={initialCategory} /> : null}
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -44,22 +59,25 @@ export function ExpensesManager({ expenses, currency, defaultDate, initialCatego
             defaultValue={query ?? ""}
             placeholder="Search spending"
             aria-label="Search spending"
-            className="h-9 w-full rounded-[var(--radius-field)] border border-input bg-background pl-8 pr-2.5 text-[13.5px] placeholder:text-muted-foreground sm:w-56"
+            className="h-9 w-full rounded-[var(--radius-field)] border border-border bg-background pl-8 pr-2.5 text-[13.5px] placeholder:text-muted-foreground sm:w-56"
           />
         </form>
 
-        <Button onClick={() => setEditing("new")}>
-          <Plus className="size-4" aria-hidden />
-          Add expense
-        </Button>
+        {query ? (
+          <a
+            href={clearHref}
+            className="text-[13px] font-medium text-primary hover:underline"
+          >
+            Clear search
+          </a>
+        ) : null}
       </div>
 
       {editing !== null ? (
         <ExpenseDialog
-          expense={editing === "new" ? null : editing}
+          expense={editing}
           currency={currency}
-          defaultDate={defaultDate}
-          defaultCategory={initialCategory === "ALL" ? "BAZAR" : initialCategory}
+          defaultCategory={defaultCategory}
           onClose={() => setEditing(null)}
         />
       ) : null}
@@ -71,7 +89,7 @@ export function ExpensesManager({ expenses, currency, defaultDate, initialCatego
           description={
             query
               ? "Try a different word, or clear the search to see everything."
-              : "Bazar runs set the meal rate. Everything else is shared evenly between active members."
+              : "Add the week's bazar above. Bazar sets the meal rate; everything else is shared evenly between active members."
           }
         />
       ) : (
@@ -133,35 +151,131 @@ export function ExpensesManager({ expenses, currency, defaultDate, initialCatego
   );
 }
 
-function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClose }) {
-  const isNew = !expense;
-  const { state, formAction, pending } = useActionForm(
-    isNew ? createExpenseAction : updateExpenseAction,
-  );
-
-  async function handleSubmit(formData) {
-    const result = await formAction(formData);
-    if (result?.ok) onClose();
-  }
+/**
+ * Adding an expense used to mean opening a dialog, filling four fields and
+ * dismissing it, then opening it again for the next one. Spending gets recorded
+ * a line at a time, often several lines in the same sitting, so the form stays
+ * on the page and clears itself after a save.
+ *
+ * Notes are deliberately not here: they are rare, and the edit dialog already
+ * has room for them.
+ */
+function QuickAddExpense({ currency, defaultDate, defaultCategory }) {
+  const descriptionRef = useRef(null);
+  const { state, formAction, pending, formRef } = useActionForm(createExpenseAction, {
+    onSuccess: () => {
+      formRef.current?.reset();
+      descriptionRef.current?.focus();
+    },
+  });
 
   return (
-    <Dialog open onClose={onClose} label={isNew ? "Add expense" : "Edit expense"}>
-      <form action={handleSubmit} noValidate>
+    <form
+      ref={formRef}
+      action={formAction}
+      noValidate
+      aria-label="Add an expense"
+      className="rounded-[var(--radius-card)] border border-border bg-surface-muted/60 p-3"
+    >
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto] sm:items-start">
+        <Field label="What was it" htmlFor="quick-description" error={state.errors?.description}>
+          {({ id, invalid, describedBy }) => (
+            <Input
+              ref={descriptionRef}
+              id={id}
+              name="description"
+              placeholder="Weekly bazar — chicken and vegetables"
+              defaultValue={state.values?.description}
+              aria-describedby={describedBy}
+              invalid={invalid}
+              maxLength={120}
+            />
+          )}
+        </Field>
+
+        <Field label="Amount" htmlFor="quick-amount" error={state.errors?.amount} hint={currency}>
+          {({ id, invalid, describedBy }) => (
+            <Input
+              id={id}
+              name="amount"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              defaultValue={state.values?.amount}
+              aria-describedby={describedBy}
+              invalid={invalid}
+            />
+          )}
+        </Field>
+
+        <Field label="Category" htmlFor="quick-category" error={state.errors?.category}>
+          {({ id, invalid, describedBy }) => (
+            <Select
+              id={id}
+              name="category"
+              defaultValue={state.values?.category ?? defaultCategory}
+              aria-describedby={describedBy}
+              invalid={invalid}
+            >
+              {EXPENSE_CATEGORIES.map((value) => (
+                <option key={value} value={value}>
+                  {EXPENSE_CATEGORY_LABELS[value]}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+
+        <Field label="Date" htmlFor="quick-date" error={state.errors?.date}>
+          {({ id, invalid, describedBy }) => (
+            <Input
+              id={id}
+              name="date"
+              type="date"
+              defaultValue={state.values?.date ?? defaultDate}
+              aria-describedby={describedBy}
+              invalid={invalid}
+            />
+          )}
+        </Field>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <ActionMessage state={state} className="min-w-0 flex-1" />
+        <SubmitButton pending={pending} className="shrink-0">
+          <Plus className="size-4" aria-hidden />
+          Add
+        </SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+/** Editing keeps the dialog: it is a deliberate, less frequent action. */
+function ExpenseDialog({ expense, currency, defaultCategory, onClose }) {
+  const { state, formAction, pending, formRef } = useActionForm(updateExpenseAction, { onSuccess: onClose });
+
+  return (
+    <Dialog open onClose={onClose} label="Edit expense">
+      <form ref={formRef} action={formAction} noValidate>
         <DialogHeader>
-          <DialogTitle>{isNew ? "Add expense" : "Edit expense"}</DialogTitle>
+          <DialogTitle>Edit expense</DialogTitle>
           <DialogCloseIcon onClick={onClose} />
         </DialogHeader>
 
         <DialogBody>
           <div className="space-y-4">
-            {!isNew ? <input type="hidden" name="expenseId" value={expense.id} /> : null}
+            <input type="hidden" name="expenseId" value={expense.id} />
 
             <Field label="What was it" htmlFor="description" error={state.errors?.description} required>
-              {({ id, invalid }) => (
+              {({ id, invalid, describedBy }) => (
                 <Input
                   id={id}
                   name="description"
-                  defaultValue={expense?.description ?? ""}
+                  defaultValue={state.values?.description ?? expense.description}
+                  aria-describedby={describedBy}
                   placeholder="Weekly bazar — chicken and vegetables"
                   invalid={invalid}
                   maxLength={120}
@@ -173,7 +287,7 @@ function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClos
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Amount" htmlFor="amount" error={state.errors?.amount} hint={currency} required>
-                {({ id, invalid }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="amount"
@@ -181,7 +295,8 @@ function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClos
                     inputMode="decimal"
                     min="0"
                     step="0.01"
-                    defaultValue={expense?.amount ?? ""}
+                    defaultValue={state.values?.amount ?? expense.amount}
+                    aria-describedby={describedBy}
                     placeholder="0.00"
                     invalid={invalid}
                     required
@@ -190,12 +305,13 @@ function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClos
               </Field>
 
               <Field label="Date" htmlFor="date" error={state.errors?.date} required>
-                {({ id, invalid }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="date"
                     type="date"
-                    defaultValue={expense ? toDateInput(expense.date) : defaultDate}
+                    defaultValue={state.values?.date ?? toDateInput(expense.date)}
+                    aria-describedby={describedBy}
                     invalid={invalid}
                     required
                   />
@@ -214,11 +330,12 @@ function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClos
               }
               required
             >
-              {({ id, invalid }) => (
+              {({ id, invalid, describedBy }) => (
                 <Select
                   id={id}
                   name="category"
-                  defaultValue={expense?.category ?? defaultCategory}
+                  defaultValue={state.values?.category ?? expense.category ?? defaultCategory}
+                  aria-describedby={describedBy}
                   invalid={invalid}
                 >
                   {EXPENSE_CATEGORIES.map((value) => (
@@ -231,13 +348,15 @@ function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClos
             </Field>
 
             <Field label="Notes" htmlFor="notes" error={state.errors?.notes}>
-              {({ id }) => (
+              {({ id, invalid, describedBy }) => (
                 <Textarea
                   id={id}
                   name="notes"
                   rows={2}
-                  defaultValue={expense?.notes ?? ""}
+                  defaultValue={state.values?.notes ?? expense.notes ?? ""}
                   placeholder="Optional"
+                  invalid={invalid}
+                  aria-describedby={describedBy}
                   maxLength={280}
                 />
               )}
@@ -249,7 +368,7 @@ function ExpenseDialog({ expense, currency, defaultDate, defaultCategory, onClos
 
         <DialogFooter>
           <DialogClose onClick={onClose}>Cancel</DialogClose>
-          <SubmitButton pending={pending}>{isNew ? "Add expense" : "Save changes"}</SubmitButton>
+          <SubmitButton pending={pending}>Save changes</SubmitButton>
         </DialogFooter>
       </form>
     </Dialog>

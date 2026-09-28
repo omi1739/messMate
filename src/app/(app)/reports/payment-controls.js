@@ -93,12 +93,12 @@ export function PaymentControls({ month, rows, currency }) {
 }
 
 function MarkPaid({ month, row, currency }) {
-  const { state, formAction, pending } = useActionForm(markFullyPaidAction, {
+  const { state, formAction, pending, formRef } = useActionForm(markFullyPaidAction, {
     successToast: true,
   });
 
   return (
-    <form action={formAction} className="contents">
+    <form ref={formRef} action={formAction} className="contents">
       <input type="hidden" name="month" value={month} />
       <input type="hidden" name="memberId" value={row.member.id} />
       <Button
@@ -120,16 +120,11 @@ function MarkPaid({ month, row, currency }) {
 }
 
 function PaymentDialog({ month, row, currency, onClose }) {
-  const { state, formAction, pending } = useActionForm(recordPaymentAction);
-
-  async function handleSubmit(formData) {
-    const result = await formAction(formData);
-    if (result?.ok) onClose();
-  }
+  const { state, formAction, pending, formRef } = useActionForm(recordPaymentAction, { onSuccess: onClose });
 
   return (
     <Dialog open onClose={onClose} label={`Payment from ${row.member.name}`}>
-      <form action={handleSubmit} noValidate>
+      <form ref={formRef} action={formAction} noValidate>
         <DialogHeader>
           <div>
             <DialogTitle>Payment from {row.member.name}</DialogTitle>
@@ -152,7 +147,7 @@ function PaymentDialog({ month, row, currency, onClose }) {
 
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="Rent paid" htmlFor="rentPaid" error={state.errors?.rentPaid} hint={currency}>
-                {({ id }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="rentPaid"
@@ -160,12 +155,14 @@ function PaymentDialog({ month, row, currency, onClose }) {
                     inputMode="decimal"
                     min="0"
                     step="0.01"
+                    invalid={invalid}
+                    aria-describedby={describedBy}
                     defaultValue={row.paid.rent}
                   />
                 )}
               </Field>
               <Field label="Meals paid" htmlFor="mealPaid" error={state.errors?.mealPaid} hint={currency}>
-                {({ id }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="mealPaid"
@@ -173,17 +170,19 @@ function PaymentDialog({ month, row, currency, onClose }) {
                     inputMode="decimal"
                     min="0"
                     step="0.01"
+                    invalid={invalid}
+                    aria-describedby={describedBy}
                     defaultValue={row.paid.meals}
                   />
                 )}
               </Field>
               <Field
-                label="Utilities paid"
+                label="Shared costs paid"
                 htmlFor="utilityPaid"
                 error={state.errors?.utilityPaid}
-                hint={currency}
+                hint={`${currency} · utilities + other`}
               >
-                {({ id }) => (
+                {({ id, invalid, describedBy }) => (
                   <Input
                     id={id}
                     name="utilityPaid"
@@ -191,6 +190,8 @@ function PaymentDialog({ month, row, currency, onClose }) {
                     inputMode="decimal"
                     min="0"
                     step="0.01"
+                    invalid={invalid}
+                    aria-describedby={describedBy}
                     defaultValue={row.paid.utilities}
                   />
                 )}
@@ -199,7 +200,8 @@ function PaymentDialog({ month, row, currency, onClose }) {
 
             <p className="text-[12px] leading-relaxed text-muted-foreground">
               These replace whatever was recorded before, so edit the figures rather than adding to
-              them. Overpayment is allowed — paying next month&rsquo;s rent early is normal.
+              them. Overpayment is allowed — paying next month&rsquo;s rent early is normal. Shared
+              costs are the two even-split heads (utilities and other) recorded as one figure.
             </p>
 
             <ActionMessage state={state} />

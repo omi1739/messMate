@@ -75,12 +75,22 @@ const objectId = z
 // Auth
 // ---------------------------------------------------------------------------
 
+/*
+ * Trim has to come *before* the format check. In Zod a string format check
+ * (`.email()`) runs against the raw input, and `.trim()` is a transform that
+ * only runs once the checks before it have passed — so `z.email().trim()`
+ * rejects `" a@b.com "` instead of cleaning it. Every auth form sets
+ * `noValidate`, so the browser will not strip the whitespace either.
+ */
+const emailField = z
+  .string({ error: "Enter a valid email address" })
+  .trim()
+  .toLowerCase()
+  .pipe(z.email({ error: "Enter a valid email address" }));
+
 export const signupSchema = z.object({
   name: requiredText(2, 60, "Your name"),
-  email: z
-    .email({ error: "Enter a valid email address" })
-    .trim()
-    .toLowerCase(),
+  email: emailField,
   password: z
     .string({ error: "Choose a password" })
     .min(8, "Use at least 8 characters")
@@ -92,10 +102,7 @@ export const signupSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z
-    .email({ error: "Enter a valid email address" })
-    .trim()
-    .toLowerCase(),
+  email: emailField,
   password: z.string({ error: "Enter your password" }).min(1, "Enter your password"),
 });
 

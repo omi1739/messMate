@@ -19,12 +19,21 @@ export async function setUserSuspendedAction(_prevState, formData) {
   await requireSuperAdmin();
 
   const userId = formString(formData, "userId");
-  const suspended = formString(formData, "suspended") === "true";
   if (!userId) return fail("Missing user.");
+
+  // Parsed strictly. Anything that was not literally "true" used to mean
+  // "reinstate", so a checkbox (`"on"`), a `"1"`, or a missing field silently
+  // granted access rather than revoking it.
+  const raw = formString(formData, "suspended");
+  if (raw !== "true" && raw !== "false") return fail("That account state is not valid.");
+  const suspended = raw === "true";
 
   const { count } = await db.user.updateMany({ where: { id: userId }, data: { suspended } });
   if (count === 0) return fail("That account no longer exists.");
 
+  // No session bookkeeping is needed to cut access off: `getCurrentUser` re-reads
+  // the account on every guarded request and treats a suspended row as no
+  // session at all, so the flag takes effect on the target's very next request.
   revalidatePath("/admin");
   return succeed(suspended ? "Account suspended." : "Account reinstated.");
 }
@@ -47,11 +56,27 @@ export async function deleteUserAction(_prevState, formData) {
 
   // Messes cascade from their owner via Prisma's onDelete, but MongoDB does not
   // enforce referential integrity, so the child records are cleared explicitly.
-  if (target.mess) {
-    await clearMessData(db, target.mess.id);
+  //
+  // This is several independent writes with no transaction available on a
+  // standalone MongoDB, so a failure part-way through is possible and has to be
+  // recoverable. Without this, a failure left the account alive with its mess
+  // already gone: a signed-in user with empty pages and a Server Action throwing
+  // on every save, and no way to sign out and start again.
+  try {
+    if (target.mess) {
+      await clearMessData(db, target.mess.id);
+    }
+    await db.user.deleteMany({ where: { id: userId } });
+  } catch (error) {
+    console.error(`[admin] failed to delete account ${userId}:`, error);
+    return fail(
+      `Could not finish deleting ${target.email}. The mess data may be partly removed — try again, or remove the account by hand in Prisma Studio.`,
+    );
   }
-  await db.user.deleteMany({ where: { id: userId } });
 
+  // Any live session for the deleted account resolves to no user on its next
+  // request, because `getCurrentUser` re-reads the row rather than trusting the
+  // cookie, so there is no valid-session cleanup to do here.
   revalidatePath("/admin");
   return succeed(`Deleted ${target.email} and all of their mess data.`);
 }

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { headers } from "next/headers";
 import { cache } from "react";
 import { redirect } from "next/navigation";
@@ -18,14 +19,58 @@ import { redirect } from "next/navigation";
  * it is explicitly NOT treated as the security boundary. The checks here are.
  */
 
-/** Signed-in user, or null. Memoised per request/render pass. */
+/**
+ * Signed-in user, or null. Memoised per request/render pass.
+ *
+ * A JWT cannot be revoked: once minted it stays valid until it expires, and the
+ * session strategy is JWT. Reading the claims alone would mean a session created
+ * before a suspension — or before the account was deleted — kept working for the
+ * full 30 days, with a deleted user's cookie still satisfying every guard while
+ * the mess behind it no longer exists. So the account row is re-read here: one
+ * primary-key lookup per request, and a session the database no longer endorses
+ * resolves to `null` exactly like never having signed in.
+ *
+ * This is also the only place `name` and `messId` can be fresh. The token holds
+ * whatever they were at sign-in, so a profile rename or a mess rename would
+ * otherwise not reach the sidebar until the user signed out and back in.
+ */
 export const getCurrentUser = cache(async () => {
-  const session = await auth();
-  return session?.user ?? null;
+  const sessionUser = (await auth())?.user;
+  if (!sessionUser?.id) return null;
+
+  // The super admin has no account row on purpose: their credentials live in
+  // the environment and are never stored, so there is nothing to re-read.
+  if (sessionUser.isAdmin) {
+    return { ...sessionUser, deleted: false, suspended: false };
+  }
+
+  const account = await db.user.findUnique({
+    where: { id: sessionUser.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      suspended: true,
+      mess: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!account || account.suspended) return null;
+
+  return {
+    id: account.id,
+    name: account.name,
+    email: account.email,
+    isAdmin: false,
+    messId: account.mess?.id ?? null,
+    messName: account.mess?.name ?? null,
+    deleted: false,
+    suspended: false,
+  };
 });
 
 /** Signed-in user for a page; redirects to /login when absent. */
-export async function requireUser() {
+async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
@@ -52,24 +97,15 @@ export async function requireSuperAdmin() {
 
 /**
  * The tenant scope for a request. Refuses to hand out `null` so a missing scope
- * can never be mistaken for "see everything".
+ * can never be mistaken for "see everything". A missing scope is an orphaned
+ * session, and it gets the same designed outcome as `requireMessOwner` — a
+ * redirect — rather than a thrown `Error` that surfaces as a 500 from every
+ * action and leaves the user signed in with no way back to the login form.
  */
 export async function requireMessId() {
   const user = await requireUser();
-  if (!user.messId) {
-    throw new Error("No mess scope for this session");
-  }
+  if (!user.messId) redirect("/login?error=MissingMess");
   return user.messId;
-}
-
-/** True when the incoming request came from a signed-in session. */
-export async function isAuthenticated() {
-  return Boolean(await getCurrentUser());
-}
-
-export async function isSuperAdmin() {
-  const user = await getCurrentUser();
-  return Boolean(user?.isAdmin);
 }
 
 /**
@@ -79,14 +115,43 @@ export async function isSuperAdmin() {
  */
 export async function assertSameOrigin() {
   const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin");
-  const host = requestHeaders.get("host");
-  if (!origin || !host) return;
+
+  // Behind a reverse proxy the browser used the public host, while the Node
+  // process may have received the proxy's own. Comparing against `host` alone
+  // rejected every action in the app on a default nginx config, and no
+  // configuration could fix it.
+  const expectedHost = (
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? ""
+  )
+    .split(",")[0]
+    .trim();
+
+  // `Origin` is sent on every browser form POST. `Referer` is the fallback for
+  // the clients that omit it, and is stripped more often, so it is only used
+  // when `Origin` is absent.
+  const source = requestHeaders.get("origin") ?? requestHeaders.get("referer");
+
+  if (!source) {
+    // No browser was involved. CSRF needs a victim's browser to attach the
+    // session cookie, and the session cookie is `SameSite=Lax` besides, so a
+    // request with neither header is a direct client (curl, the test scripts)
+    // that presented its own cookie on purpose — there is nothing to forge.
+    return;
+  }
+
+  if (!expectedHost) {
+    throw new Error("Cross-origin form submission rejected");
+  }
+
+  let sourceHost;
   try {
-    if (new URL(origin).host !== host) {
-      throw new Error("Cross-origin form submission rejected");
-    }
+    sourceHost = new URL(source).host;
   } catch {
+    // A malformed value is a mismatch, not an absence.
+    throw new Error("Cross-origin form submission rejected");
+  }
+
+  if (sourceHost !== expectedHost) {
     throw new Error("Cross-origin form submission rejected");
   }
 }

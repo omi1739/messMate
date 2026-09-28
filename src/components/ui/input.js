@@ -128,10 +128,17 @@ export function Label({ className, required, children, ...props }) {
   );
 }
 
-/** Label + control + inline error, wired together with matching ids. */
+/**
+ * Label + control + inline error, wired together with matching ids.
+ *
+ * The error is exposed through `aria-describedby` as well as being drawn, so the
+ * message is announced rather than only being red.
+ */
 export function Field({ label, htmlFor, error, hint, required, children, className }) {
   const generatedId = useId();
   const id = htmlFor ?? generatedId;
+  const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -140,16 +147,28 @@ export function Field({ label, htmlFor, error, hint, required, children, classNa
           {label}
         </Label>
       ) : null}
-      {typeof children === "function" ? children({ id, invalid: Boolean(error) }) : children}
-      {error ? <FieldError>{error}</FieldError> : null}
-      {!error && hint ? <p className="text-[12px] text-muted-foreground">{hint}</p> : null}
+      {typeof children === "function"
+        ? children({
+            id,
+            invalid: Boolean(error),
+            describedBy: [error ? errorId : null, !error && hint ? hintId : null]
+              .filter(Boolean)
+              .join(" ") || undefined,
+          })
+        : children}
+      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
+      {!error && hint ? (
+        <p id={hintId} className="text-[12px] text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
-export function FieldError({ children, className }) {
+export function FieldError({ children, className, id }) {
   return (
-    <p className={cn("flex items-start gap-1.5 text-[12px] font-medium text-danger", className)}>
+    <p id={id} className={cn("flex items-start gap-1.5 text-[12px] font-medium text-danger", className)}>
       <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />
       {children}
     </p>

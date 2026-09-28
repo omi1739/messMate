@@ -2,7 +2,7 @@
 //
 // Tenancy model: one `User` signup == one `Mess` == one isolated data set.
 // Every operational model carries `messId`; ALL queries must be scoped by it
-// (see src/lib/dal.js -> requireSession / requireMessId).
+// (see src/lib/dal.js -> requireUser / requireMessId).
 //
 // The super admin is NOT stored here. It is configured via env credentials
 // and identified in the session by `isAdmin` only.
@@ -219,8 +219,9 @@ model VisitDaily {
   uniques Int @default(0)
   updatedAt DateTime @updatedAt
 
+  // No separate @@index([day]): a single-field index is already the leftmost
+  // prefix of this unique one, so MongoDB can serve day-only lookups from it.
   @@unique([day, kind])
-  @@index([day])
   @@map("visit_daily")
 }
 

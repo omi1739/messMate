@@ -280,7 +280,9 @@ export async function recordVisit(visit) {
 }
 
 /** Housekeeping: drop expired visitor hashes and very old counters. */
-export async function pruneIfDue(now = Date.now()) {
+// Not exported: pruning is housekeeping kicked off by `recordVisit`, never a
+// job anything else is allowed to schedule.
+async function pruneIfDue(now = Date.now()) {
   if (now - lastPrunedAt < PRUNE_INTERVAL_MS) return;
   lastPrunedAt = now;
   try {
@@ -371,12 +373,21 @@ export async function readTraffic(days = 30) {
       { views: 0, uniques: 0 },
     );
 
+  // The seven days before `last7`, i.e. days 8-14 counting back. `slice(-14)`
+  // would be the last fourteen days, which is never smaller than `last7` and
+  // made the week-on-week delta permanently negative.
+  const sumPreviousWindow = (n) =>
+    series.slice(-n * 2, -n).reduce(
+      (acc, entry) => ({ views: acc.views + entry.views, uniques: acc.uniques + entry.uniques }),
+      { views: 0, uniques: 0 },
+    );
+
   return {
     ...base,
     totals: sumWindow(series.length),
     today: series.at(-1) ?? { day: dayKey(), views: 0, uniques: 0 },
     last7: sumWindow(7),
-    previous7: sumWindow(14),
+    previous7: sumPreviousWindow(7),
     pages: top(pages, 8),
     referrers: top(referrers, 6),
     devices: [...devices.entries()]

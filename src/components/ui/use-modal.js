@@ -14,11 +14,34 @@ import { useEffect, useRef } from "react";
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
+/**
+ * Open overlays, innermost last. Dialog can be nested — an edit dialog hosting a
+ * delete confirmation — and every one of them registers its own listener on
+ * `document`. `stopPropagation()` cannot arbitrate between them: it stops the
+ * event travelling to *other nodes*, not other listeners on the *same* node. So
+ * Escape closed both, and the outer edit form was unmounted with every unsaved
+ * change in it. Only the topmost overlay may react, which is what a stack is for.
+ */
+const openModals = [];
+
 export function useModalBehaviour(open, onClose, panelRef) {
   const restoreFocusRef = useRef(null);
 
+  // Read through a ref so an inline arrow from the owner does not become an
+  // effect dependency. As a dependency it changed identity on every render of
+  // the owner, which tore the effect down and re-ran it — restoring focus and
+  // then stealing it back to the panel's first control mid-interaction.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
+
+    const id = Symbol("modal");
+    openModals.push(id);
+    const isTopmost = () => openModals[openModals.length - 1] === id;
 
     restoreFocusRef.current = document.activeElement;
 
@@ -29,6 +52,7 @@ export function useModalBehaviour(open, onClose, panelRef) {
     if (gap > 0) document.body.style.paddingRight = `${gap}px`;
 
     const focusTimer = window.setTimeout(() => {
+      if (!isTopmost()) return;
       const panel = panelRef.current;
       if (!panel) return;
       const target = panel.querySelector(FOCUSABLE) ?? panel;
@@ -36,9 +60,11 @@ export function useModalBehaviour(open, onClose, panelRef) {
     }, 20);
 
     const onKeyDown = (event) => {
+      if (!isTopmost()) return;
+
       if (event.key === "Escape") {
-        event.stopPropagation();
-        onClose?.();
+        event.preventDefault();
+        onCloseRef.current?.();
         return;
       }
 
@@ -70,6 +96,8 @@ export function useModalBehaviour(open, onClose, panelRef) {
     document.addEventListener("keydown", onKeyDown, true);
 
     return () => {
+      const at = openModals.indexOf(id);
+      if (at >= 0) openModals.splice(at, 1);
       document.removeEventListener("keydown", onKeyDown, true);
       window.clearTimeout(focusTimer);
       document.body.style.overflow = overflow;
@@ -78,5 +106,5 @@ export function useModalBehaviour(open, onClose, panelRef) {
         restoreFocusRef.current.focus();
       }
     };
-  }, [open, onClose, panelRef]);
+  }, [open, panelRef]);
 }

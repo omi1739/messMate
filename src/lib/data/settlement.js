@@ -9,7 +9,7 @@ import {
   monthKeyFromDate,
   shiftMonth,
 } from "@/lib/date";
-import { round2 } from "@/lib/money";
+import { round2, sumBy } from "@/lib/money";
 
 /**
  * Loads everything needed to settle a month in one round trip set, always
@@ -54,13 +54,26 @@ export const getSettlementTrend = cache(async (requestedMonth) => {
   const month = isMonthKey(requestedMonth) ? requestedMonth : currentMonthKey();
   const months = [shiftMonth(month, -2), shiftMonth(month, -1), month];
 
-  const [bills, expenses, payments] = await Promise.all([
+  // Bounded on both ends. An open-ended `gte` returned every expense the mess
+  // had ever recorded, on every dashboard load, and threw the surplus away in
+  // JavaScript — the numbers were right but the query grew without limit.
+  const windowStart = monthDateRange(months[0]).gte;
+  const windowEnd = monthDateRange(month).lt;
+
+  const [bills, customBills, expenses, payments] = await Promise.all([
     db.bill.findMany({
       where: { messId, month: { in: months } },
       select: { month: true, water: true, electricity: true, gas: true, wifi: true, other: true },
     }),
+    // Custom bills are part of "spent" in the settlement report, so leaving them
+    // out here made the dashboard trend permanently disagree with the report for
+    // any mess that uses them, always in the same direction.
+    db.customBill.findMany({
+      where: { messId, month: { in: months } },
+      select: { month: true, amount: true },
+    }),
     db.expense.findMany({
-      where: { messId, date: { gte: monthDateRange(months[0]).gte } },
+      where: { messId, date: { gte: windowStart, lt: windowEnd } },
       select: { amount: true, date: true },
     }),
     db.payment.findMany({
@@ -71,18 +84,26 @@ export const getSettlementTrend = cache(async (requestedMonth) => {
 
   return months.map((key) => {
     const bill = bills.find((b) => b.month === key);
+    const fixedUtilities = bill
+      ? bill.water + bill.electricity + bill.gas + bill.wifi + bill.other
+      : 0;
+    const custom = sumBy(
+      customBills.filter((item) => item.month === key),
+      (item) => item.amount,
+    );
 
     const spent = round2(
-      expenses
-        .filter((expense) => monthKeyFromDate(expense.date) === key)
-        .reduce((total, expense) => total + expense.amount, 0) +
-        (bill ? bill.water + bill.electricity + bill.gas + bill.wifi + bill.other : 0),
+      sumBy(
+        expenses.filter((expense) => monthKeyFromDate(expense.date) === key),
+        (expense) => expense.amount,
+      ) + fixedUtilities + custom,
     );
 
     const collected = round2(
-      payments
-        .filter((payment) => payment.month === key)
-        .reduce((total, payment) => total + payment.rentPaid + payment.mealPaid + payment.utilityPaid, 0),
+      sumBy(
+        payments.filter((payment) => payment.month === key),
+        (payment) => payment.rentPaid + payment.mealPaid + payment.utilityPaid,
+      ),
     );
 
     return { month: key, collected, spent };

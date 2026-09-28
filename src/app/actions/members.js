@@ -90,7 +90,15 @@ export async function setMemberStatusAction(_prevState, formData) {
   if (count === 0) return fail("That member no longer exists.");
 
   revalidateApp();
-  return succeed(status === "ACTIVE" ? "Member reactivated." : "Member marked as inactive.");
+  // ARCHIVED is a distinct terminal state, not a flavour of inactive. The old
+  // two-way ternary reported "inactive" for an archive, so the button said
+  // Archived while the confirmation said otherwise.
+  const confirmations = {
+    ACTIVE: "Member reactivated.",
+    INACTIVE: "Member marked as inactive.",
+    ARCHIVED: "Member archived. Their history is kept and their charges have stopped.",
+  };
+  return succeed(confirmations[status]);
 }
 
 export async function deleteMemberAction(_prevState, formData) {

@@ -59,6 +59,10 @@ export function computeSettlement({
   const activeMembers = members.filter((member) => member.status === "ACTIVE");
   const activeCount = activeMembers.length;
 
+  // A default parameter only fires for `undefined`, so an explicit `null` bill
+  // still has to be coalesced before the fields are read.
+  const billFields = bill ?? EMPTY_BILL;
+
   // --- Shared totals ------------------------------------------------------
   const totalMeals = sumBy(meals, mealUnits);
 
@@ -74,11 +78,11 @@ export function computeSettlement({
   const seatRentTotal = sumBy(activeMembers, (member) => member.rent ?? 0);
 
   const utilityItems = [
-    { key: "water", label: "Water", amount: bill.water ?? 0 },
-    { key: "electricity", label: "Electricity", amount: bill.electricity ?? 0 },
-    { key: "gas", label: "Gas", amount: bill.gas ?? 0 },
-    { key: "wifi", label: "Internet", amount: bill.wifi ?? 0 },
-    { key: "other", label: "Other utilities", amount: bill.other ?? 0 },
+    { key: "water", label: "Water", amount: billFields.water ?? 0 },
+    { key: "electricity", label: "Electricity", amount: billFields.electricity ?? 0 },
+    { key: "gas", label: "Gas", amount: billFields.gas ?? 0 },
+    { key: "wifi", label: "Internet", amount: billFields.wifi ?? 0 },
+    { key: "other", label: "Other utilities", amount: billFields.other ?? 0 },
     ...customBills.map((item) => ({
       key: item.id,
       label: item.title,
@@ -92,18 +96,21 @@ export function computeSettlement({
   const otherSharedShare = activeCount > 0 ? round2(otherSharedTotal / activeCount) : 0;
 
   // --- Per-member rows ----------------------------------------------------
+  // Sums go through the same null-safe accessor `totalMeals` uses, so a meal
+  // document missing a field cannot put `NaN` into the per-member breakdown.
   const mealsByMember = new Map();
   for (const meal of meals) {
     const existing = mealsByMember.get(meal.memberId);
+    const incoming = breakdownOf(meal);
     mealsByMember.set(
       meal.memberId,
       existing
         ? {
-            breakfast: existing.breakfast + meal.breakfast,
-            lunch: existing.lunch + meal.lunch,
-            dinner: existing.dinner + meal.dinner,
+            breakfast: existing.breakfast + incoming.breakfast,
+            lunch: existing.lunch + incoming.lunch,
+            dinner: existing.dinner + incoming.dinner,
           }
-        : { breakfast: meal.breakfast, lunch: meal.lunch, dinner: meal.dinner },
+        : { breakfast: incoming.breakfast, lunch: incoming.lunch, dinner: incoming.dinner },
     );
   }
 
@@ -151,7 +158,17 @@ export function computeSettlement({
   const rowsPaidTotal = sumBy(rows, (row) => row.paidTotal);
 
   const expenseTotal = round2(bazarTotal + otherSharedTotal);
-  const grandTotal = round2(mealRate * totalMeals + seatRentTotal + utilityTotal + otherSharedTotal);
+  // The meal head is built from `bazarTotal`, not from `mealRate * totalMeals`.
+  // The rate is rounded to 2dp for display, so re-multiplying it drifts away
+  // from the money actually spent (bazar 100 over 3 meals bills 99.99). Using
+  // the real figure keeps "Total billed" equal to what was spent and pushes the
+  // drift into `roundingAdjustment`, which is what the report footer reconciles.
+  //
+  // With no meals logged there is no rate, so the bazar is charged to nobody and
+  // the headline stays at the other heads. The spend is still reported, as
+  // `bazarTotal` and `expenseTotal`; it is simply not owed by anyone.
+  const chargedBazar = totalMeals > 0 ? bazarTotal : 0;
+  const grandTotal = round2(chargedBazar + seatRentTotal + utilityTotal + otherSharedTotal);
 
   return {
     month,
@@ -185,7 +202,7 @@ export function computeSettlement({
 
     rows,
 
-    /** Per-column drift caused by rounding each row independently. */
+    /** Per-column drift caused by rounding the rate and each row independently. */
     roundingAdjustment: round2(grandTotal - rowsTotalBill),
   };
 }
@@ -194,6 +211,6 @@ export function computeSettlement({
 export function sortRowsForReport(rows) {
   return [...rows].sort((a, b) => {
     if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
-    return a.member.name.localeCompare(b.member.name);
+    return (a.member.name ?? "").localeCompare(b.member.name ?? "");
   });
 }

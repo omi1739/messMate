@@ -59,15 +59,3 @@ export const getMealGrid = cache(async (requestedMonth) => {
 
   return { month, members, days, grid, todayKey: toDateInputValue(today) };
 });
-
-/** Meals for one member across a month — used by the member detail view. */
-export const getMemberMeals = cache(async (memberId, requestedMonth) => {
-  const messId = await requireMessId();
-  const month = isMonthKey(requestedMonth) ? requestedMonth : currentMonthKey();
-  const range = monthDateRange(month);
-
-  return db.meal.findMany({
-    where: { messId, memberId, date: { gte: range.gte, lt: range.lt } },
-    orderBy: { date: "asc" },
-  });
-});

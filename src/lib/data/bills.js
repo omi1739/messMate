@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireMessId } from "@/lib/dal";
 import { currentMonthKey, isMonthKey, shiftMonth } from "@/lib/date";
 import { EMPTY_BILL } from "@/lib/settlement";
-import { sumBy } from "@/lib/money";
+import { round2, sumBy } from "@/lib/money";
 
 /** Utility bill + custom charges for a month. */
 export const getBills = cache(async (requestedMonth) => {
@@ -41,6 +41,11 @@ export const getBills = cache(async (requestedMonth) => {
     (value) => value,
   );
 
+  // Each part is already rounded, but adding two rounded floats can still tip
+  // over a representable boundary (0.1 + 0.2), and the header total is what
+  // everyone checks their own arithmetic against. Rounded again at the edge.
+  const grandTotal = round2(fixedTotal + customTotal);
+
   return {
     month,
     bill: current,
@@ -48,8 +53,8 @@ export const getBills = cache(async (requestedMonth) => {
     hasBill: Boolean(bill),
     fixedTotal,
     customTotal,
-    grandTotal: fixedTotal + customTotal,
+    grandTotal,
     previousTotal,
-    delta: fixedTotal - previousTotal,
+    delta: round2(fixedTotal - previousTotal),
   };
 });

@@ -76,6 +76,13 @@ export function useToast() {
 }
 
 function ToastViewport({ toasts, onDismiss }) {
+  // The container is created together with its first toast rather than being kept
+  // mounted and empty. A permanently mounted live region is the textbook fix for
+  // a missed announcement, but this viewport is portaled, so the server never
+  // renders it at all — keeping it mounted on the client makes it disagree with
+  // the server's output and every page fails hydration (caught by
+  // check:meals-ui). Reinstating it belongs with moving the live region out of
+  // the portal, not as a one-line change.
   if (toasts.length === 0) return null;
 
   return (

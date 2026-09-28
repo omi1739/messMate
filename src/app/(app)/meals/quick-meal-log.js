@@ -48,11 +48,18 @@ export function QuickMealLog({ members, days, cells, todayKey }) {
   const { toast } = useToast();
 
   // Default to today when this month contains it, otherwise the first day that
-  // has actually happened. Logging a month you are not living in is rare.
+  // has actually happened. `todayKey` is the real current date regardless of the
+  // month on screen, so it has to be checked against `days` before it is used:
+  // picking a day outside the displayed month made every write land on today's
+  // row while the header showed a different month.
   const initialDay = useMemo(() => {
-    if (todayKey) return todayKey;
+    const hasToday = todayKey && days.some((day) => day.key === todayKey);
+    if (hasToday) return todayKey;
     return days.find((day) => !day.isFuture)?.key ?? days[0]?.key ?? null;
   }, [todayKey, days]);
+
+  // "Jump to today" is only offered when today is actually on screen.
+  const todayIsInView = Boolean(todayKey && days.some((day) => day.key === todayKey));
 
   const [picked, setPicked] = useState({ month: initialDay, dayKey: initialDay });
   const [draft, setDraft] = useState({});
@@ -156,7 +163,9 @@ export function QuickMealLog({ members, days, cells, todayKey }) {
       formData.set("date", dayKey);
       const result = await fillMissingMealsAction({ ok: false }, formData);
       toast({
-        title: result?.message ?? (result?.ok ? "Done." : "Could not fill that day."),
+        title: result?.ok
+          ? (result.message ?? "Everyone ate.")
+          : (result?.error ?? "Could not fill that day."),
         variant: result?.ok ? "success" : "error",
       });
       cache.current = { rows: {} };
@@ -228,7 +237,7 @@ export function QuickMealLog({ members, days, cells, todayKey }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {todayKey && dayKey !== todayKey ? (
+          {todayIsInView && dayKey !== todayKey ? (
             <Button variant="ghost" size="sm" onClick={() => setDayKey(todayKey)}>
               Jump to today
             </Button>

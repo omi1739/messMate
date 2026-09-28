@@ -44,11 +44,15 @@ export default async function MealsPage({ searchParams }) {
   }));
 
   // A day counts as logged when anybody ate. Checking a single member would
-  // undercount, since members join and leave part-way through the month.
+  // undercount, since members join and leave part-way through the month. The
+  // cells hold { b, l, d } and carry no `total`, so the sum is done here.
   const loggedDays = grid.days.filter(
     (day) =>
       !day.isFuture &&
-      grid.members.some((member) => (cells[member.id]?.[day.key]?.total ?? 0) > 0),
+      grid.members.some((member) => {
+        const cell = cells[member.id]?.[day.key];
+        return (cell?.b ?? 0) + (cell?.l ?? 0) + (cell?.d ?? 0) > 0;
+      }),
   ).length;
   const elapsedDays = grid.days.filter((day) => !day.isFuture).length;
 

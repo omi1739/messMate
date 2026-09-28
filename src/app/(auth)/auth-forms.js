@@ -18,7 +18,7 @@ export function AuthForm({
   banner,
   children,
 }) {
-  const { state, formAction, pending } = useActionForm(action);
+  const { state, formAction, pending, formRef } = useActionForm(action);
 
   return (
     <div className="space-y-6">
@@ -29,11 +29,11 @@ export function AuthForm({
 
       {banner}
 
-      <form action={formAction} className="space-y-4" noValidate>
+      <form ref={formRef} action={formAction} className="space-y-4" noValidate>
         {next ? <input type="hidden" name="next" value={safeNextPath(next)} /> : null}
 
         <Field label="Email" htmlFor="email" error={state.errors?.email} required>
-          {({ id, invalid }) => (
+          {({ id, invalid, describedBy }) => (
             <Input
               id={id}
               name="email"
@@ -42,6 +42,7 @@ export function AuthForm({
               autoComplete="email"
               placeholder="you@example.com"
               invalid={invalid}
+              aria-describedby={describedBy}
               required
               autoFocus
             />
@@ -49,7 +50,7 @@ export function AuthForm({
         </Field>
 
         <Field label="Password" htmlFor="password" error={state.errors?.password} required>
-          {({ id, invalid }) => (
+          {({ id, invalid, describedBy }) => (
             <Input
               id={id}
               name="password"
@@ -57,6 +58,7 @@ export function AuthForm({
               autoComplete="current-password"
               placeholder="••••••••"
               invalid={invalid}
+              aria-describedby={describedBy}
               required
             />
           )}

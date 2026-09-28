@@ -15,7 +15,8 @@ import { Tag, UsageTag } from "./bits";
  * open them, so the table does not read as a wall of red.
  */
 export function AccountRow({ user, isSelf }) {
-  const suspend = useActionForm(setUserSuspendedAction, { successToast: true });
+  const { state: suspendState, formAction: suspendAction, pending: suspendPending, formRef: suspendFormRef } =
+    useActionForm(setUserSuspendedAction, { successToast: true });
   const detail = user.mess;
 
   return (
@@ -75,11 +76,11 @@ export function AccountRow({ user, isSelf }) {
             <span className="text-[11.5px] text-muted-foreground">—</span>
           ) : (
             <>
-              <form action={suspend.formAction}>
+              <form ref={suspendFormRef} action={suspendAction}>
                 <input type="hidden" name="userId" value={user.id} />
                 <input type="hidden" name="suspended" value={String(!user.suspended)} />
                 <SubmitButton
-                  pending={suspend.pending}
+                  pending={suspendPending}
                   variant="ghost"
                   size="icon-sm"
                   title={user.suspended ? "Reinstate account" : "Suspend account"}
@@ -126,9 +127,9 @@ export function AccountRow({ user, isSelf }) {
             </>
           )}
         </div>
-        {suspend.state?.error ? (
+        {suspendState?.error ? (
           <p role="alert" className="mt-1 text-[11px] text-danger">
-            {suspend.state.error}
+            {suspendState.error}
           </p>
         ) : null}
       </td>

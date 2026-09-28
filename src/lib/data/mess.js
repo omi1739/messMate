@@ -7,7 +7,7 @@ export const getMessProfile = cache(async () => {
   const messId = await requireMessId();
   return db.mess.findUnique({
     where: { id: messId },
-    select: { id: true, name: true, currency: true, createdAt: true },
+    select: { id: true, name: true, currency: true, createdAt: true, updatedAt: true },
   });
 });
 

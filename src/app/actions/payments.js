@@ -48,9 +48,20 @@ export async function recordPaymentAction(_prevState, formData) {
 export async function markFullyPaidAction(_prevState, formData) {
   const { messId } = await guardAction();
 
-  const month = formString(formData, "month");
-  const memberId = formString(formData, "memberId");
-  if (!month || !memberId) return fail("Missing details.");
+  // Validated like its sibling. Without this, `getSettlement` silently coerces a
+  // bad month to the current one while the upsert below keys on the raw string,
+  // minting a Payment row no report will ever read.
+  const parsed = paymentSchema
+    .pick({ month: true, memberId: true })
+    .safeParse({
+      month: formString(formData, "month"),
+      memberId: formString(formData, "memberId"),
+    });
+  if (!parsed.success) {
+    return fail("That month or member is not valid.", fieldErrors(parsed.error));
+  }
+
+  const { month, memberId } = parsed.data;
 
   // Reuse the report's own engine so the recorded payment is exactly the
   // amount the report asks for — no second, drifting implementation of the
@@ -62,6 +73,10 @@ export async function markFullyPaidAction(_prevState, formData) {
 
   const rentPaid = row.rent;
   const mealPaid = row.mealCost;
+  // A member has four cost heads but the record has three columns, so the two
+  // shared heads are stored together. The UI labels this column "Shared costs"
+  // for exactly this reason — calling it utilities put a figure that silently
+  // included "other" in front of the user.
   const utilityPaid = round2(row.utilities + row.otherShare);
 
   await db.payment.upsert({

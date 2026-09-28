@@ -151,7 +151,7 @@ function HealthRow({ icon: Icon, label, value, total, hint }) {
           <p className="truncate text-[12px] text-muted-foreground">{hint}</p>
         </div>
         <p className="nums shrink-0 text-right text-[15px] font-semibold">
-          {typeof value === "number" ? value : value}
+          {value}
           {typeof total === "number" ? (
             <span className="ml-1 text-[12px] font-normal text-muted-foreground">/ {total}</span>
           ) : null}

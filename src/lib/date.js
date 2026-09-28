@@ -10,7 +10,7 @@
  */
 
 export const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
-export const DATE_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -23,14 +23,6 @@ const pad = (n) => String(n).padStart(2, "0");
 
 export function isMonthKey(value) {
   return typeof value === "string" && MONTH_KEY_PATTERN.test(value);
-}
-
-/** Returns a normalised `YYYY-MM` key, or `fallback` when the input is bad. */
-export function normalizeMonthKey(value, fallback = null) {
-  if (isMonthKey(value)) return value;
-  const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) return monthKeyFromDate(parsed);
-  return fallback;
 }
 
 export function monthKeyFromDate(date) {
@@ -75,7 +67,7 @@ export function toDateInputValue(date) {
 }
 
 /** Number of days in a `YYYY-MM` month. */
-export function daysInMonth(monthKey) {
+function daysInMonth(monthKey) {
   const [year, month] = monthKey.split("-").map(Number);
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
@@ -102,11 +94,6 @@ export function shiftMonth(monthKey, delta) {
   return monthKeyFromDate(shifted);
 }
 
-/** The last `count` month keys ending at `from`, newest first. */
-export function recentMonthKeys(from = currentMonthKey(), count = 12) {
-  return Array.from({ length: count }, (_, i) => shiftMonth(from, -i));
-}
-
 /** "2026-09" -> "September 2026" */
 export function monthLabel(monthKey, { short = false } = {}) {
   const [year, month] = monthKey.split("-").map(Number);
@@ -120,10 +107,6 @@ export function monthLabelWithYear(monthKey) {
   return `${MONTH_NAMES_SHORT[month - 1]} ${String(year).slice(2)}`;
 }
 
-export function monthOptions(from = currentMonthKey(), count = 18) {
-  return recentMonthKeys(from, count).map((key) => ({ value: key, label: monthLabel(key) }));
-}
-
 export function formatDate(date) {
   const d = new Date(date);
   return `${d.getUTCDate()} ${MONTH_NAMES_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
@@ -132,10 +115,6 @@ export function formatDate(date) {
 export function formatDateLong(date) {
   const d = new Date(date);
   return `${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
-
-export function dayOfMonth(date) {
-  return new Date(date).getUTCDate();
 }
 
 export function weekdayShort(date) {

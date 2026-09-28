@@ -43,11 +43,30 @@ function shortDay(day) {
 }
 
 /**
+ * Indices for the first, middle and last point of a series, de-duplicated.
+ *
+ * The middle of a 1- or 2-point series coincides with an end, so the plain
+ * `[0, floor(n / 2), n - 1]` produced `[0, 0, 0]` and `[0, 1, 1]`. React
+ * renders those as duplicate keys, which is a real reconciliation hazard, and
+ * the same day was simply printed two or three times over the same spot.
+ */
+function axisTicks(length) {
+  return [...new Set([0, Math.floor(length / 2), length - 1])].filter((i) => i >= 0 && i < length);
+}
+
+/**
  * Two overlaid series as an area plus a line — page views as the filled shape
  * with unique visitors drawn over the top, since unique is always the lower,
  * nested number.
  */
-export function TrendChart({ series, label, primaryKey = "views", secondaryKey = "uniques" }) {
+export function TrendChart({
+  series,
+  label,
+  primaryKey = "views",
+  secondaryKey = "uniques",
+  primaryLabel = "Page views",
+  secondaryLabel = "Unique visitors",
+}) {
   if (!series?.length) return null;
 
   const primary = series.map((d) => d[primaryKey] ?? 0);
@@ -119,11 +138,11 @@ export function TrendChart({ series, label, primaryKey = "views", secondaryKey =
         {/* Native SVG tooltips: hover a point, no JavaScript required. */}
         {primaryPts.map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y} r="7" fill="transparent">
-            <title>{`${shortDay(series[i].day)}: ${primary[i]} views, ${secondary[i]} unique`}</title>
+            <title>{`${shortDay(series[i].day)}: ${primary[i]} ${primaryLabel.toLowerCase()}, ${secondary[i]} ${secondaryLabel.toLowerCase()}`}</title>
           </circle>
         ))}
 
-        {[0, Math.floor(series.length / 2), series.length - 1].map((i) => (
+        {axisTicks(series.length).map((i) => (
           <text
             key={i}
             x={primaryPts[i].x}
@@ -137,10 +156,10 @@ export function TrendChart({ series, label, primaryKey = "views", secondaryKey =
         ))}
       </svg>
 
-      <ChartLegend items={[["Page views", "var(--primary)"], ["Unique visitors", "var(--info)"]]} />
+      <ChartLegend items={[[primaryLabel, "var(--primary)"], [secondaryLabel, "var(--info)"]]} />
       <DataTable
         caption={`${label}, daily`}
-        columns={["Day", "Page views", "Unique visitors"]}
+        columns={["Day", primaryLabel, secondaryLabel]}
         rows={series.map((d) => [shortDay(d.day), d[primaryKey] ?? 0, d[secondaryKey] ?? 0])}
       />
     </figure>
@@ -202,7 +221,7 @@ export function BarChart({ series, label, tone = "var(--primary)" }) {
           );
         })}
 
-        {[0, Math.floor(series.length / 2), series.length - 1].map((i) => (
+        {axisTicks(series.length).map((i) => (
           <text
             key={i}
             x={inset + i * slot + slot / 2}

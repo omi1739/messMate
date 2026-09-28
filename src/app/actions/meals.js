@@ -71,7 +71,13 @@ export async function fillDayForAllAction(_prevState, formData) {
 
   const day = parseDateInput(date);
 
-  await Promise.all(
+  // N concurrent upserts on one unique key. `Promise.all` rejects on the first
+  // failure while the rest keep running, so the count of what actually landed is
+  // unknown — it is collected per member and the action either revalidates (all
+  // of them wrote) or says plainly that it was a partial save. Without this the
+  // throwing path skipped `revalidateApp` entirely and the grid stayed stale,
+  // showing the user the pre-fill state with no signal anything had happened.
+  const outcomes = await Promise.allSettled(
     members.map((member) =>
       db.meal.upsert({
         where: { messId_date_memberId: { messId, date: day, memberId: member.id } },
@@ -80,6 +86,15 @@ export async function fillDayForAllAction(_prevState, formData) {
       }),
     ),
   );
+
+  const failed = outcomes.filter((outcome) => outcome.status === "rejected");
+  if (failed.length > 0) {
+    console.error("[meals] fillDayForAll partial failure:", failed[0].reason);
+    revalidateApp();
+    return fail(
+      `Saved ${members.length - failed.length} of ${members.length} members. Please try the rest.`,
+    );
+  }
 
   revalidateApp();
   return succeed(`Set ${formatCount(breakfast + lunch + dinner)} for ${members.length} members.`);
@@ -128,7 +143,7 @@ export async function fillMissingMealsAction(_prevState, formData) {
     return succeed("Everyone already has meals recorded for that day.");
   }
 
-  await Promise.all(
+  const outcomes = await Promise.allSettled(
     targets.map((member) =>
       db.meal.upsert({
         where: { messId_date_memberId: { messId, date: day, memberId: member.id } },
@@ -137,6 +152,15 @@ export async function fillMissingMealsAction(_prevState, formData) {
       }),
     ),
   );
+
+  const failed = outcomes.filter((outcome) => outcome.status === "rejected");
+  if (failed.length > 0) {
+    console.error("[meals] fillMissingMeals partial failure:", failed[0].reason);
+    revalidateApp();
+    return fail(
+      `Filled ${targets.length - failed.length} of ${targets.length}. Please try the rest.`,
+    );
+  }
 
   revalidateApp();
   return succeed(
