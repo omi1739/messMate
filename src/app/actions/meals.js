@@ -88,3 +88,58 @@ export async function fillDayForAllAction(_prevState, formData) {
 function formatCount(count) {
   return count === 1 ? "1 meal" : `${count} meals`;
 }
+
+/**
+ * The everyday case: mark the whole day for everyone, but only for members who
+ * have nothing recorded yet. `fillDayForAllAction` overwrites, which is wrong
+ * when you are catching up on an ordinary day and someone only had half a lunch.
+ */
+export async function fillMissingMealsAction(_prevState, formData) {
+  const { messId } = await guardAction();
+
+  const date = formString(formData, "date");
+  const day = parseDateInput(date);
+  if (day === null) return fail("Pick a valid date.");
+
+  const members = await db.member.findMany({
+    where: { messId, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (members.length === 0) return fail("Add some active members first.");
+
+  const existing = await db.meal.findMany({
+    where: { messId, date: day },
+    select: { memberId: true, breakfast: true, lunch: true, dinner: true },
+  });
+
+  // Only rows with no meals at all count as missing. A partial day is somebody's
+  // real data, not an oversight.
+  const untouched = new Set(
+    existing
+      .filter((meal) => !meal.breakfast && !meal.lunch && !meal.dinner)
+      .map((meal) => meal.memberId),
+  );
+  const targets = members.filter(
+    (member) => !existing.some((meal) => meal.memberId === member.id) || untouched.has(member.id),
+  );
+
+  if (targets.length === 0) {
+    revalidateApp();
+    return succeed("Everyone already has meals recorded for that day.");
+  }
+
+  await Promise.all(
+    targets.map((member) =>
+      db.meal.upsert({
+        where: { messId_date_memberId: { messId, date: day, memberId: member.id } },
+        update: { breakfast: 1, lunch: 1, dinner: 1 },
+        create: { messId, memberId: member.id, date: day, breakfast: 1, lunch: 1, dinner: 1 },
+      }),
+    ),
+  );
+
+  revalidateApp();
+  return succeed(
+    `Filled ${targets.length} of ${members.length} ${members.length === 1 ? "member" : "members"} with all three meals.`,
+  );
+}

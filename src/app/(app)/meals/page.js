@@ -6,6 +6,8 @@ import { formatMoney, formatNumber } from "@/lib/money";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { MonthNav } from "../month-nav";
 import { MealGrid } from "./meal-grid";
+import { QuickMealLog } from "./quick-meal-log";
+import { MealViews } from "./meal-views";
 
 export const metadata = { title: "Meals" };
 
@@ -91,33 +93,62 @@ export default async function MealsPage({ searchParams }) {
         />
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Daily log</CardTitle>
-          <CardDescription>
-            One row per member, one column per day. Values are meal counts and may be halves, so
-            0.5 for someone who ate only dinner.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MealGrid
-            members={grid.members.map((member) => ({
-              id: member.id,
-              name: member.name,
-              status: member.status,
-            }))}
-            days={days}
-            cells={cells}
-          />
-        </CardContent>
-      </Card>
+      <MealViews
+        quick={
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Log a day</CardTitle>
+                <CardDescription>
+                  Pick the day, then tap a member&apos;s meal to mark it. Tapping cycles none, full,
+                  half, and saves straight away.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <QuickMealLog
+                  members={grid.members.map((member) => ({
+                    id: member.id,
+                    name: member.name,
+                    status: member.status,
+                  }))}
+                  days={days}
+                  cells={cells}
+                  todayKey={grid.todayKey}
+                />
+              </CardContent>
+            </Card>
 
-      {grid.todayKey ? (
-        <p className="text-[12.5px] text-muted-foreground">
-          Today is {formatDateLong(grid.todayKey)}. Future days can be pre-filled if you already
-          know the plan.
-        </p>
-      ) : null}
+            {grid.todayKey ? (
+              <p className="mt-3 text-[12.5px] text-muted-foreground">
+                Today is {formatDateLong(grid.todayKey)}. Switch to &ldquo;Whole month&rdquo; to
+                back-fill days you have not logged yet.
+              </p>
+            ) : null}
+          </>
+        }
+        month={
+          <Card>
+            <CardHeader>
+              <CardTitle>Daily log</CardTitle>
+              <CardDescription>
+                One row per member, one column per day. Values are meal counts and may be halves,
+                so 0.5 for someone who ate only dinner. Use this to back-fill or correct days.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MealGrid
+                members={grid.members.map((member) => ({
+                  id: member.id,
+                  name: member.name,
+                  status: member.status,
+                }))}
+                days={days}
+                cells={cells}
+              />
+            </CardContent>
+          </Card>
+        }
+      />
     </div>
   );
 }

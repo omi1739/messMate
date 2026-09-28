@@ -183,7 +183,8 @@ proving the session owns it.
 | `npm run test:auth`    | Sign-in matrix over HTTP, all six cases                 |
 | `npm run test:routing` | Who can reach which route, per role                     |
 | `npm run test:isolation` | Two tenants, proving one cannot see the other          |
-| `npm run test:integration` | Seeds the fixtures, then runs all three HTTP suites |
+| `npm run check:meals-ui` | Drive meal entry in a real browser and read the results back from the server |
+| `npm run test:integration` | Seeds the fixtures, then runs all four HTTP suites |
 | `npm run db:push`      | Sync the Prisma schema to MongoDB                       |
 | `npm run db:studio`    | Browse the data                                         |
 | `npm run db:seed:e2e`  | Create the throwaway accounts the HTTP tests sign in as |
@@ -198,11 +199,11 @@ proving the session owns it.
 | `npm run db:reset:visits` | Delete every traffic counter                         |
 | `npm run db:prune:visits` | Delete expired visitor hashes and very old counters    |
 
-The three `test:*` integration scripts need the dev server running. Each one
-also assumes the `db:seed:e2e` fixtures exist, so prefer
-`npm run test:integration`, which seeds first and then runs all three. The
-fixtures are disposable: `npm run db:clean:e2e` returns the database to a state
-holding only real accounts. `npm test` needs no server, database or fixtures.
+The four integration scripts need the dev server running. Each one also assumes
+the `db:seed:e2e` fixtures exist, so prefer `npm run test:integration`, which seeds
+first and then runs all four. The fixtures are disposable:
+`npm run db:clean:e2e` returns the database to a state holding only real
+accounts. `npm test` needs no server, database or fixtures.
 
 No fixture data is committed. Every fake member, meal, expense and payment
 exists only after you run a `db:seed:*` script, and the marketing pages contain
